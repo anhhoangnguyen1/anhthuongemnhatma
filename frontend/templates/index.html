@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dự đoán giá vàng – DSS</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      margin: 0;
+      padding: 1.5rem;
+      background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%);
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+    h1 {
+      text-align: center;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: #f8fafc;
+    }
+    .subtitle {
+      text-align: center;
+      color: #94a3b8;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: rgba(30, 41, 59, 0.8);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid rgba(71, 85, 105, 0.5);
+    }
+    .prediction-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .prediction-badge {
+      font-size: 1.25rem;
+      font-weight: 700;
+      padding: 0.75rem 1.5rem;
+      border-radius: 10px;
+    }
+    .prediction-badge.buy { background: #166534; color: #bbf7d0; }
+    .prediction-badge.hold { background: #854d0e; color: #fef08a; }
+    .prediction-badge.sell { background: #991b1b; color: #fecaca; }
+    .prediction-badge.na { background: #475569; color: #94a3b8; }
+    .latest-meta {
+      color: #94a3b8;
+      font-size: 0.9rem;
+    }
+    .chart-wrap {
+      position: relative;
+      height: 380px;
+    }
+    .error-msg {
+      background: #7f1d1d;
+      color: #fecaca;
+      padding: 1rem;
+      border-radius: 8px;
+      margin: 1rem 0;
+    }
+    .loading { color: #94a3b8; }
+    .card-dropdown { margin-bottom: 1rem; }
+    .dropdown-label { margin: 0 0 0.5rem 0; font-size: 1rem; color: #f8fafc; }
+    .dropdown-row { flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+    .gold-code-select {
+      min-width: 220px;
+      padding: 0.5rem 0.75rem;
+      font-size: 1rem;
+      border-radius: 8px;
+      background: #1e293b;
+      color: #e2e8f0;
+      border: 1px solid #64748b;
+      cursor: pointer;
+    }
+    .gold-code-select:hover, .gold-code-select:focus { border-color: #3b82f6; outline: none; }
+  </style>
+</head>
+<body>
+  <h1>Dự đoán giá vàng</h1>
+  <p class="subtitle">Mô hình XGBoost BUY / HOLD / SELL</p>
+
+  <div class="card card-dropdown">
+    <h3 class="dropdown-label">Chọn mã vàng</h3>
+    <div class="prediction-row dropdown-row">
+      <select id="gold-code" class="gold-code-select" title="Chọn 1 mã để xem 1 loại vàng, hoặc Trung bình tất cả">
+        <option value="">Trung bình tất cả (giá TB + mode dự đoán)</option>
+      </select>
+      <span class="latest-meta" id="gold-code-hint">Mỗi điểm = 1 ngày, trung bình tất cả mã.</span>
+    </div>
+  </div>
+  <div class="card">
+    <div class="prediction-row">
+      <span class="latest-meta">Giá mới nhất:</span>
+      <span class="latest-meta" id="latest-date"></span>
+      <span class="latest-meta" id="latest-price"></span>
+      <span class="latest-meta">|</span>
+      <span class="latest-meta">Dự đoán mới nhất:</span>
+      <span id="latest-prediction" class="prediction-badge">--</span>
+      <span class="latest-meta" id="latest-pred-date"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0;" id="chart-title">Giá vàng & dự đoán (90 ngày gần nhất)</h2>
+    <div class="chart-wrap">
+      <canvas id="chart"></canvas>
+    </div>
+  </div>
+
+  <div id="error-box"></div>
+
+  <script>
+    const ctx = document.getElementById('chart').getContext('2d');
+    let chart = null;
+
+    function setLatest(latest, goldCode) {
+      const el = document.getElementById('latest-prediction');
+      const pred = latest.prediction || 'N/A';
+      el.textContent = pred;
+      el.className = 'prediction-badge ' + (pred === 'N/A' ? 'na' : pred.toLowerCase());
+      document.getElementById('latest-date').textContent = latest.date ? 'Ngày: ' + latest.date.slice(0, 10) : '';
+      document.getElementById('latest-price').textContent = latest.price != null ? Number(latest.price).toLocaleString('vi-VN') + ' VND' : '';
+      document.getElementById('latest-pred-date').textContent = latest.prediction_date ? '(ngày ' + latest.prediction_date.slice(0, 10) + ')' : '';
+      const hint = document.getElementById('gold-code-hint');
+      const title = document.getElementById('chart-title');
+      if (goldCode) {
+        hint.textContent = 'Mỗi điểm = 1 ngày = 1 lần dự đoán cho mã ' + goldCode + '.';
+        title.textContent = 'Giá vàng ' + goldCode + ' & dự đoán (90 ngày gần nhất)';
+      } else {
+        hint.textContent = 'Mỗi điểm = 1 ngày, trung bình tất cả mã (giá TB + mode dự đoán). Chọn 1 mã để xem 1 loại vàng.';
+        title.textContent = 'Giá vàng & dự đoán (90 ngày gần nhất)';
+      }
+    }
+
+    function showError(msg) {
+      const box = document.getElementById('error-box');
+      box.innerHTML = '<div class="error-msg">' + msg + '</div>';
+    }
+
+    function clearError() {
+      document.getElementById('error-box').innerHTML = '';
+    }
+
+    function drawChart(data) {
+      const labels = (data.dates || []).map(d => d.slice(0, 10));
+      const prices = data.prices || [];
+      const preds = data.predictions || [];
+      const colors = preds.map(p => p === 'BUY' ? '#22c55e' : p === 'SELL' ? '#ef4444' : p === 'HOLD' ? '#eab308' : 'rgba(0,0,0,0)');
+
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Giá bán TB (VND)',
+              data: prices,
+              borderColor: '#3b82f6',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              fill: true,
+              tension: 0.2,
+              pointRadius: 0,
+              pointHoverRadius: 4,
+            },
+            {
+              label: 'Tín hiệu',
+              data: prices,
+              pointBackgroundColor: colors,
+              pointBorderColor: colors,
+              pointRadius: preds.map(p => p === 'N/A' ? 0 : 5),
+              pointHoverRadius: 7,
+              showLine: false,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { intersect: false, mode: 'index' },
+          plugins: {
+            legend: { position: 'top' },
+            tooltip: {
+              callbacks: {
+                afterLabel: function(ctx) {
+                  const p = preds[ctx.dataIndex];
+                  return 'Dự đoán: ' + (p && p !== 'N/A' ? p : 'chưa có (cần dữ liệu 3 ngày sau)');
+                },
+                label: function(ctx) {
+                  const v = ctx.raw;
+                  return (ctx.dataset.label || '') + ': ' + (typeof v === 'number' ? v.toLocaleString('vi-VN') + ' VND' : v);
+                },
+              },
+            },
+          },
+          scales: {
+            x: { title: { display: true, text: 'Ngày' } },
+            y: { title: { display: true, text: 'VND' } },
+          },
+        },
+      });
+    }
+
+    async function load() {
+      const goldCode = document.getElementById('gold-code').value || '';
+      setLatest({}, goldCode || null);
+      clearError();
+      document.getElementById('latest-prediction').textContent = 'Đang tải...';
+      document.getElementById('latest-prediction').className = 'prediction-badge loading';
+
+      try {
+        const url = goldCode ? '/api/predict?gold_code=' + encodeURIComponent(goldCode) : '/api/predict';
+        const r = await fetch(url);
+        const data = await r.json();
+        if (!r.ok) {
+          showError(data.error || 'Lỗi API');
+          return;
+        }
+        if (Array.isArray(data.gold_codes) && data.gold_codes.length > 0) {
+          fillGoldCodeOptions(data.gold_codes);
+        }
+        setLatest(data.latest || {}, data.gold_code || null);
+        drawChart(data);
+      } catch (e) {
+        showError('Không kết nối được server. Chạy: python frontend/app.py');
+      }
+    }
+
+    function fillGoldCodeOptions(codes) {
+      const sel = document.getElementById('gold-code');
+      if (!sel) return;
+      if (!Array.isArray(codes) || codes.length === 0) return;
+      const already = sel.options.length > 1;
+      if (already) return;
+      codes.forEach(function(code) {
+        const opt = document.createElement('option');
+        opt.value = code;
+        opt.textContent = code;
+        sel.appendChild(opt);
+      });
+    }
+
+    (async function init() {
+      const sel = document.getElementById('gold-code');
+      if (sel) sel.addEventListener('change', load);
+      try {
+        const r = await fetch('/api/gold_codes');
+        const data = await r.json();
+        fillGoldCodeOptions(data.gold_codes || []);
+      } catch (e) {}
+      load();
+    })();
+  </script>
+</body>
+</html>

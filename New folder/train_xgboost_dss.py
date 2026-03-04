@@ -6,7 +6,7 @@ import joblib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import classification_report, confusion_matrix, f1_score
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.utils.class_weight import compute_sample_weight
@@ -17,6 +17,7 @@ INPUT_FILE = "master_dss_dataset.csv"
 SCALER_FILE = "scaler_xgboost_dss.pkl"
 MODEL_FILE = "xgboost_dss_model.pkl"
 FEATURE_IMPORTANCE_FIGURE = "xgboost_feature_importance.png"
+METRICS_FILE = "evaluation_metrics.txt"
 OUTPUT_DIR_NAME = "output"
 TRAIN_SPLIT_RATIO = 0.80
 
@@ -311,28 +312,50 @@ def evaluate_model(
     X_test: pd.DataFrame,
     y_test: pd.Series,
     label_encoder: LabelEncoder,
+    metrics_path: Path | None = None,
 ) -> None:
-    """Train the multi-class XGBoost model and print evaluation metrics."""
+    """Evaluate the multi-class XGBoost model, print metrics, and optionally save to file."""
     y_pred = model.predict(X_test)
+    labels = list(range(len(label_encoder.classes_)))
 
     label_mapping = {int(index): label for index, label in enumerate(label_encoder.classes_)}
     print("Label mapping (encoded -> class):")
     for index, label in label_mapping.items():
         print(f"  {index}: {label}")
 
-    print("\nClassification report:")
-    print(
-        classification_report(
-            y_test,
-            y_pred,
-            labels=list(range(len(label_encoder.classes_))),
-            target_names=label_encoder.classes_,
-            zero_division=0,
-        )
+    report_str = classification_report(
+        y_test,
+        y_pred,
+        labels=labels,
+        target_names=label_encoder.classes_,
+        zero_division=0,
     )
+    cm = confusion_matrix(y_test, y_pred, labels=labels)
 
+    f1_macro = f1_score(y_test, y_pred, labels=labels, average="macro", zero_division=0)
+    f1_weighted = f1_score(y_test, y_pred, labels=labels, average="weighted", zero_division=0)
+
+    print("\nClassification report:")
+    print(report_str)
     print("Confusion matrix:")
-    print(confusion_matrix(y_test, y_pred, labels=list(range(len(label_encoder.classes_)))))
+    print(cm)
+    print(f"\nF1 macro:    {f1_macro:.4f}")
+    print(f"F1 weighted: {f1_weighted:.4f}")
+
+    if metrics_path is not None:
+        with open(metrics_path, "w", encoding="utf-8") as f:
+            f.write("XGBoost DSS - Evaluation metrics (test set)\n")
+            f.write("=" * 50 + "\n\n")
+            f.write("Label mapping (encoded -> class):\n")
+            for index, label in label_mapping.items():
+                f.write(f"  {index}: {label}\n")
+            f.write("\nClassification report:\n")
+            f.write(report_str)
+            f.write("\nConfusion matrix:\n")
+            f.write(str(cm) + "\n\n")
+            f.write(f"F1 macro:    {f1_macro:.4f}\n")
+            f.write(f"F1 weighted: {f1_weighted:.4f}\n")
+        print(f"\nSaved metrics to: {metrics_path}")
 
 
 def plot_feature_importance(model: XGBClassifier, feature_names: list[str], output_path: Path, top_n: int = 15) -> None:
@@ -366,6 +389,7 @@ def main() -> None:
     scaler_path = output_dir / SCALER_FILE
     model_path = output_dir / MODEL_FILE
     importance_plot_path = output_dir / FEATURE_IMPORTANCE_FIGURE
+    metrics_path = output_dir / METRICS_FILE
 
     df = load_and_resample_daily(input_path)
     df = add_technical_indicators(df)
@@ -384,7 +408,7 @@ def main() -> None:
     print(y_test.value_counts().sort_index())
 
     model = tune_and_train_xgboost(X_train, y_train, num_class=len(label_encoder.classes_))
-    evaluate_model(model, X_test, y_test, label_encoder)
+    evaluate_model(model, X_test, y_test, label_encoder, metrics_path=metrics_path)
     plot_feature_importance(model, feature_names=X_train.columns.tolist(), output_path=importance_plot_path, top_n=15)
 
     joblib.dump(model, model_path)

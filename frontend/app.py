@@ -1,0 +1,227 @@
+"""
+Backend Flask: load model XGBoost, chạy pipeline trên master, trả API cho frontend visualize.
+Chạy từ thư mục gốc: python frontend/app.py (hoặc cd frontend && python app.py)
+"""
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+# Thêm New folder để import train_xgboost_dss
+ROOT = Path(__file__).resolve().parent.parent
+NEW_FOLDER = ROOT / "New folder"
+if str(NEW_FOLDER) not in sys.path:
+    sys.path.insert(0, str(NEW_FOLDER))
+
+import joblib
+import pandas as pd
+from flask import Flask, jsonify, render_template, request
+from sklearn.preprocessing import LabelEncoder
+
+app = Flask(__name__, template_folder=Path(__file__).resolve().parent / "templates", static_folder="static")
+
+# Đường dẫn mặc định: model và data
+MODEL_DIR = NEW_FOLDER / "output"
+MODEL_PATH = MODEL_DIR / "xgboost_dss_model.pkl"
+SCALER_PATH = MODEL_DIR / "scaler_xgboost_dss.pkl"
+LABELS = ["BUY", "HOLD", "SELL"]
+MAX_POINTS = 90  # Số điểm trả về cho chart (90 ngày gần nhất)
+
+# Master CSV: ưu tiên file có nhiều ngày (thư mục gốc thường có từ tháng 1) để chart đủ 90 ngày
+_master_path_cache: Path | None = None
+_gold_codes_cache: list | None = None
+
+
+def _normalize_master_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Đổi tên cột master gốc (World_Price_VND...) sang tên pipeline cần (world_price_vnd...)."""
+    rename = {"World_Price_VND": "world_price_vnd", "Domestic_Premium": "domestic_premium"}
+    return df.rename(columns={k: v for k, v in rename.items() if k in df.columns})
+
+
+def _get_master_path() -> Path:
+    """Trả về đường dẫn master để dùng: ưu tiên file có nhiều ngày, chuẩn hóa cột nếu cần."""
+    global _master_path_cache
+    if _master_path_cache is not None:
+        return _master_path_cache
+    root_master = ROOT / "master_dss_dataset.csv"
+    new_master = NEW_FOLDER / "master_dss_dataset.csv"
+    best_path = new_master if new_master.exists() else root_master
+    best_ndays = 0
+    try:
+        if new_master.exists():
+            df = pd.read_csv(new_master, parse_dates=["timestamp"], nrows=200000)
+            best_ndays = df["timestamp"].dt.date.nunique()
+            best_path = new_master
+        if root_master.exists():
+            df = pd.read_csv(root_master, parse_dates=["timestamp"], nrows=200000)
+            ndays = df["timestamp"].dt.date.nunique()
+            if ndays > best_ndays:
+                df = _normalize_master_columns(df)
+                cache_path = ROOT / ".frontend_master_cache.csv"
+                df.to_csv(cache_path, index=False)
+                best_path = cache_path
+    except Exception:
+        pass
+    _master_path_cache = best_path
+    return best_path
+
+
+def _get_gold_codes():
+    global _gold_codes_cache
+    if _gold_codes_cache is None:
+        try:
+            path = _get_master_path()
+            df = pd.read_csv(path, usecols=["gold_code"], nrows=200000)
+            _gold_codes_cache = df["gold_code"].dropna().unique().tolist()
+        except Exception:
+            _gold_codes_cache = []
+    return _gold_codes_cache
+
+
+def _load_model_and_scaler():
+    model = joblib.load(MODEL_PATH)
+    scaler = joblib.load(SCALER_PATH)
+    return model, scaler
+
+
+def _run_pipeline_and_predict(gold_code: str | None = None):
+    from train_xgboost_dss import (
+        add_technical_indicators,
+        add_t3_target,
+        engineer_features,
+        load_and_resample_daily,
+    )
+
+    df = load_and_resample_daily(_get_master_path())
+    # Nếu chọn 1 mã vàng: lọc để mỗi ngày = 1 dòng = 1 lần dự đoán, giá và dự đoán đều của mã đó
+    if gold_code and gold_code.strip():
+        allowed = _get_gold_codes()
+        if gold_code not in allowed:
+            return None
+        df = df[df["gold_code"] == gold_code].copy()
+        if df.empty:
+            return None
+
+    df = add_technical_indicators(df)
+    # Giá theo ngày lấy TRƯỚC add_t3_target để giữ đủ ngày
+    daily_price = df.groupby("timestamp")["sell_price"].mean().reset_index()
+    daily_price.columns = ["date", "price"]
+
+    le = LabelEncoder()
+    le.fit(LABELS)
+    df_with_target, _ = add_t3_target(df.copy())
+    df_with_target = engineer_features(df_with_target)
+    if df_with_target.empty:
+        return None
+
+    target_col = "target_encoded"
+    if target_col not in df_with_target.columns:
+        return None
+    X = df_with_target.drop(columns=[target_col]).copy()
+    if "timestamp" not in X.columns:
+        return None
+    X = X.drop(columns=["timestamp"])
+
+    one_hot = [c for c in X.columns if c.startswith("gold_code_")]
+    scale_cols = [c for c in X.columns if c not in one_hot and pd.api.types.is_numeric_dtype(X[c])]
+    scaler = joblib.load(SCALER_PATH)
+    X_scaled = X.copy()
+    if scale_cols:
+        X_scaled[scale_cols] = scaler.transform(X[scale_cols])
+
+    model = joblib.load(MODEL_PATH)
+    if hasattr(model, "feature_names_in_"):
+        X_scaled = X_scaled.reindex(columns=model.feature_names_in_, fill_value=0)
+    df_with_target["prediction"] = model.predict(X_scaled)
+
+    # Inference cho 3 ngày cuối (không cần data 3 ngày sau): tính feature và predict cho đúng ngày mới nhất
+    last_dates = sorted(df["timestamp"].dropna().unique())[-3:]
+    df_last = df[df["timestamp"].isin(last_dates)].copy()
+    if not df_last.empty:
+        df_last["future_sell_price_3d"] = df_last["sell_price"].values
+        df_last["expected_profit"] = 0.0
+        df_last["current_spread"] = (df_last["sell_price"] - df_last["buy_price"]).values
+        df_last["target_trend"] = "HOLD"
+        df_last["target_encoded"] = 1
+        try:
+            df_last = engineer_features(df_last)
+            if not df_last.empty and target_col in df_last.columns:
+                X_last = df_last.drop(columns=[target_col]).copy()
+                X_last = X_last.drop(columns=["timestamp"], errors="ignore")
+                scale_cols_last = [c for c in scale_cols if c in X_last.columns]
+                if scale_cols_last:
+                    X_last[scale_cols_last] = scaler.transform(X_last[scale_cols_last])
+                if hasattr(model, "feature_names_in_"):
+                    X_last = X_last.reindex(columns=model.feature_names_in_, fill_value=0)
+                df_last["prediction"] = model.predict(X_last)
+                df_with_target = pd.concat([df_with_target, df_last], ignore_index=True)
+        except Exception:
+            pass
+
+    df = df_with_target
+    if gold_code and gold_code.strip():
+        pred_per_day = df[["timestamp", "prediction"]].drop_duplicates("timestamp")
+        pred_per_day.columns = ["date", "prediction"]
+    else:
+        pred_per_day = df.groupby("timestamp")["prediction"].agg(
+            lambda x: x.mode().iloc[0] if len(x.mode()) else x.iloc[0]
+        ).reset_index()
+        pred_per_day.columns = ["date", "prediction"]
+
+    # Left merge để giữ mọi ngày có giá (kể cả 3 ngày cuối chưa có dự đoán)
+    merge = daily_price.merge(pred_per_day, on="date", how="left")
+    merge = merge.sort_values("date").tail(MAX_POINTS)
+    merge["prediction_label"] = merge["prediction"].apply(
+        lambda i: LABELS[int(i)] if pd.notna(i) else None
+    )
+
+    # Dự đoán mới nhất = dòng cuối có prediction (3 ngày cuối không có do shift(-3))
+    last_with_pred = merge[merge["prediction"].notna()]
+    latest_pred = last_with_pred["prediction_label"].iloc[-1] if len(last_with_pred) else None
+    latest_pred_date = last_with_pred["date"].iloc[-1] if len(last_with_pred) else None
+
+    return {
+        "gold_code": gold_code.strip() if gold_code and gold_code.strip() else None,
+        "gold_codes": _get_gold_codes(),
+        "dates": merge["date"].astype(str).tolist(),
+        "prices": merge["price"].round(0).tolist(),
+        "predictions": [p if p is not None else "N/A" for p in merge["prediction_label"]],
+        "latest": {
+            "date": str(merge["date"].iloc[-1]),
+            "price": float(merge["price"].iloc[-1]),
+            "prediction": latest_pred,
+            "prediction_date": str(latest_pred_date) if latest_pred_date is not None else None,
+        },
+    }
+
+
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+
+@app.route("/api/gold_codes")
+def api_gold_codes():
+    return jsonify({"gold_codes": _get_gold_codes()})
+
+
+@app.route("/api/predict")
+def api_predict():
+    gold_code = request.args.get("gold_code", "").strip() or None
+    try:
+        out = _run_pipeline_and_predict(gold_code=gold_code)
+        if out is None:
+            return jsonify({"error": "No data or pipeline failed"}), 500
+        return jsonify(out)
+    except FileNotFoundError as e:
+        return jsonify({"error": f"File not found: {e}"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+if __name__ == "__main__":
+    if not MODEL_PATH.exists():
+        print("Model not found at", MODEL_PATH, "- train first (New folder/train_xgboost_dss.py)")
+    else:
+        print("Open http://127.0.0.1:5000 in browser")
+    app.run(host="0.0.0.0", port=5000, debug=False)
