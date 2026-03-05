@@ -443,14 +443,21 @@ def main() -> None:
         end_date=args.end,
         sleep_seconds=args.sleep,
     )
-    fed = fetch_fred_series(
-        session=session,
-        series_id="DFF",
-        value_col="fed_rate",
-        start_date=args.start,
-        end_date=args.end,
-        sleep_seconds=args.sleep,
-    )
+    try:
+        fed = fetch_fred_series(
+            session=session,
+            series_id="DFF",
+            value_col="fed_rate",
+            start_date=args.start,
+            end_date=args.end,
+            sleep_seconds=args.sleep,
+        )
+    except Exception as e:
+        print(f"[WARN] FRED DFF failed ({e}). Using constant fed_rate=4.5 for date range.")
+        fed = pd.DataFrame({
+            "date": pd.date_range(args.start, args.end, freq="D").normalize(),
+            "fed_rate": 4.5,
+        })
 
     interest_state, interest_market, interest_source = load_interest_baseline(
         interest_path=Path(args.interest_file),

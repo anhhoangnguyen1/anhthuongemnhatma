@@ -378,27 +378,27 @@ def build_master_dataset(input_dir: Path, local_timezone: str = LOCAL_TIMEZONE) 
     logging.info("Input files resolved: %s", {k: v.name for k, v in paths.items()})
 
     gold_aliases = {
-        "timestamp": ("timestamp", "datetime", "updated_at_vn", "cap_nhat_du_lieu", "thoi_diem_cap_nhat_du_lieu"),
+        "timestamp": ("timestamp", "datetime", "ngay", "date", "updated_at_vn", "cap_nhat_du_lieu", "thoi_diem_cap_nhat_du_lieu"),
         "gold_code": ("gold_code", "ma_vang"),
         "buy_price": ("buy_price", "gia_mua"),
         "sell_price": ("sell_price", "gia_ban"),
     }
     usd_aliases = {
-        "timestamp": ("timestamp", "datetime", "updated_at_vn"),
+        "timestamp": ("timestamp", "datetime", "date", "updated_at_vn"),
         "usd_vnd_rate": ("usd_vnd_rate", "usd_vnd", "usd_vnd_exchange_rate"),
     }
     interest_aliases = {
-        "timestamp": ("timestamp", "datetime", "updated_at_vn"),
+        "timestamp": ("timestamp", "datetime", "date", "updated_at_vn"),
         "interest_rate_state": ("interest_rate_state",),
         "interest_rate_market": ("interest_rate_market",),
         "interest_rate_spread": ("interest_rate_spread", "spread", "interest_spread"),
     }
     dxy_aliases = {
-        "timestamp": ("timestamp", "datetime", "updated_at_vn"),
+        "timestamp": ("timestamp", "datetime", "date", "updated_at_vn"),
         "dxy_index": ("dxy_index", "dxy", "us_dollar_index"),
     }
     fed_aliases = {
-        "timestamp": ("timestamp", "datetime", "updated_at_vn"),
+        "timestamp": ("timestamp", "datetime", "date", "updated_at_vn"),
         "fed_rate": ("fed_rate", "fed_funds_rate", "federal_funds_rate"),
     }
 
