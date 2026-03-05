@@ -543,6 +543,7 @@ def main() -> None:
     logging.basicConfig(level=getattr(logging, args.log_level), format="%(levelname)s - %(message)s")
 
     master_df = build_master_dataset(input_dir=args.input_dir, local_timezone=args.timezone)
+    master_df = master_df.rename(columns={"World_Price_VND": "world_price_vnd", "Domestic_Premium": "domestic_premium"})
 
     output_path = args.output_file if args.output_file.is_absolute() else args.input_dir / args.output_file
     output_path.parent.mkdir(parents=True, exist_ok=True)

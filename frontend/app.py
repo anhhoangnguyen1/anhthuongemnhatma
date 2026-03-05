@@ -38,30 +38,55 @@ def _normalize_master_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df.rename(columns={k: v for k, v in rename.items() if k in df.columns})
 
 
+def _get_model_gold_codes() -> set[str]:
+    """Trả về set gold_code mà model đã train (từ feature_names_in_)."""
+    try:
+        model = joblib.load(MODEL_PATH)
+        if hasattr(model, "feature_names_in_"):
+            return {c.replace("gold_code_", "") for c in model.feature_names_in_ if c.startswith("gold_code_")}
+    except Exception:
+        pass
+    return set()
+
+
 def _get_master_path() -> Path:
-    """Trả về đường dẫn master để dùng: ưu tiên file có nhiều ngày, chuẩn hóa cột nếu cần."""
+    """Ưu tiên file master có gold_code khớp model; nếu bằng nhau thì chọn file nhiều ngày hơn."""
     global _master_path_cache
     if _master_path_cache is not None:
         return _master_path_cache
+
+    model_codes = _get_model_gold_codes()
     root_master = ROOT / "master_dss_dataset.csv"
     new_master = NEW_FOLDER / "master_dss_dataset.csv"
-    best_path = new_master if new_master.exists() else root_master
-    best_ndays = 0
-    try:
-        if new_master.exists():
-            df = pd.read_csv(new_master, parse_dates=["timestamp"], nrows=200000)
-            best_ndays = df["timestamp"].dt.date.nunique()
-            best_path = new_master
-        if root_master.exists():
-            df = pd.read_csv(root_master, parse_dates=["timestamp"], nrows=200000)
-            ndays = df["timestamp"].dt.date.nunique()
-            if ndays > best_ndays:
-                df = _normalize_master_columns(df)
-                cache_path = ROOT / ".frontend_master_cache.csv"
-                df.to_csv(cache_path, index=False)
-                best_path = cache_path
-    except Exception:
-        pass
+
+    candidates = []
+    for path in (new_master, root_master):
+        if not path.exists():
+            continue
+        try:
+            df = pd.read_csv(path, nrows=200000)
+            df = _normalize_master_columns(df)
+            ndays = pd.to_datetime(df["timestamp"], errors="coerce").dt.date.nunique()
+            file_codes = set(df["gold_code"].dropna().unique()) if "gold_code" in df.columns else set()
+            overlap = len(model_codes & file_codes) if model_codes else 0
+            candidates.append((overlap, ndays, path, df))
+        except Exception:
+            pass
+
+    if not candidates:
+        _master_path_cache = new_master if new_master.exists() else root_master
+        return _master_path_cache
+
+    # Chọn file có overlap gold_code cao nhất; tie-break bằng số ngày
+    best = max(candidates, key=lambda t: (t[0], t[1]))
+    best_path, best_df = best[2], best[3]
+
+    # Nếu cần normalize (root master), cache lại file đã normalize
+    if best_path == root_master and any(c in best_df.columns for c in ("World_Price_VND", "Domestic_Premium")):
+        cache_path = ROOT / ".frontend_master_cache.csv"
+        best_df.to_csv(cache_path, index=False)
+        best_path = cache_path
+
     _master_path_cache = best_path
     return best_path
 
@@ -109,7 +134,8 @@ def _run_pipeline_and_predict(gold_code: str | None = None):
 
     le = LabelEncoder()
     le.fit(LABELS)
-    df_with_target, _ = add_t3_target(df.copy())
+    # hold_band_ratio=0.15 khớp với model đã train (--hold-band 0.15)
+    df_with_target, _ = add_t3_target(df.copy(), hold_band_ratio=0.15)
     df_with_target = engineer_features(df_with_target)
     if df_with_target.empty:
         return None

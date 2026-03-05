@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 
 import joblib
@@ -126,31 +127,49 @@ def add_technical_indicators(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def add_t3_target(df: pd.DataFrame) -> tuple[pd.DataFrame, LabelEncoder]:
+def add_t3_target(
+    df: pd.DataFrame,
+    *,
+    hold_band_ratio: float | None = None,
+    buy_ratio: float = 1.0,
+    sell_ratio: float = 0.3,
+) -> tuple[pd.DataFrame, LabelEncoder]:
     """
     Build BUY/SELL/HOLD labels using a 3-day holding horizon and current spread.
+
+    - If hold_band_ratio is set (e.g. 0.2): HOLD when |expected_profit| <= R*spread,
+      BUY when expected_profit > R*spread, SELL when expected_profit < -R*spread.
+    - If hold_band_ratio is None: BUY when expected_profit > buy_ratio*spread,
+      SELL when expected_profit < -sell_ratio*spread, HOLD otherwise.
     """
     grouped = df.groupby("gold_code", dropna=False)
     df["future_sell_price_3d"] = grouped["sell_price"].shift(-3)
     df["expected_profit"] = df["future_sell_price_3d"] - df["sell_price"]
     df["current_spread"] = df["sell_price"] - df["buy_price"]
 
-    df["target_trend"] = np.select(
-        [
-            df["expected_profit"] > df["current_spread"],
-            df["expected_profit"] < -df["current_spread"],
-        ],
-        [
-            "BUY",
-            "SELL",
-        ],
-        default="HOLD",
-    )
+    if hold_band_ratio is not None:
+        R = hold_band_ratio
+        df["target_trend"] = np.select(
+            [
+                df["expected_profit"] > R * df["current_spread"],
+                df["expected_profit"] < -R * df["current_spread"],
+            ],
+            ["BUY", "SELL"],
+            default="HOLD",
+        )
+    else:
+        df["target_trend"] = np.select(
+            [
+                df["expected_profit"] > buy_ratio * df["current_spread"],
+                df["expected_profit"] < -sell_ratio * df["current_spread"],
+            ],
+            ["BUY", "SELL"],
+            default="HOLD",
+        )
 
     df = df.dropna(subset=["future_sell_price_3d"]).reset_index(drop=True)
 
     label_encoder = LabelEncoder()
-    # Keep a stable mapping for BUY/HOLD/SELL even if one class is absent.
     label_encoder.fit(["BUY", "HOLD", "SELL"])
     df["target_encoded"] = label_encoder.transform(df["target_trend"])
     return df, label_encoder
@@ -380,12 +399,33 @@ def plot_feature_importance(model: XGBClassifier, feature_names: list[str], outp
     plt.close()
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Train XGBoost DSS BUY/HOLD/SELL classifier.")
+    parser.add_argument(
+        "--input-file",
+        type=Path,
+        default=None,
+        help=f"Master CSV path (default: same dir as script / {INPUT_FILE})",
+    )
+    parser.add_argument(
+        "--hold-band",
+        type=float,
+        default=None,
+        metavar="R",
+        help="HOLD band: |expected_profit| <= R*spread => HOLD. E.g. 0.2. If not set, use --buy-ratio/--sell-ratio.",
+    )
+    parser.add_argument("--buy-ratio", type=float, default=1.0, help="BUY when profit > buy_ratio*spread (if no --hold-band).")
+    parser.add_argument("--sell-ratio", type=float, default=0.3, help="SELL when profit < -sell_ratio*spread (if no --hold-band).")
+    return parser.parse_args()
+
+
 def main() -> None:
+    args = parse_args()
     base_dir = Path(__file__).resolve().parent
     output_dir = base_dir / OUTPUT_DIR_NAME
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    input_path = base_dir / INPUT_FILE
+    input_path = args.input_file if args.input_file is not None else base_dir / INPUT_FILE
     scaler_path = output_dir / SCALER_FILE
     model_path = output_dir / MODEL_FILE
     importance_plot_path = output_dir / FEATURE_IMPORTANCE_FIGURE
@@ -393,7 +433,12 @@ def main() -> None:
 
     df = load_and_resample_daily(input_path)
     df = add_technical_indicators(df)
-    df, label_encoder = add_t3_target(df)
+    df, label_encoder = add_t3_target(
+        df,
+        hold_band_ratio=args.hold_band,
+        buy_ratio=args.buy_ratio,
+        sell_ratio=args.sell_ratio,
+    )
     df = engineer_features(df)
 
     train_df, test_df = chronological_split(df)
