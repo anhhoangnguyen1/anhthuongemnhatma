@@ -1,0 +1,3 @@
+Phan bo nhan (sell_ratio=0.3, buy_ratio=1.0): BUY=44, HOLD=116, SELL=5
+expected_profit: min=-1300000.0, max=6600000.0
+current_spread: min=3000000.0, max=3000000.0

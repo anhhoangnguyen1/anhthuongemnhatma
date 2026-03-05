@@ -1,0 +1,27 @@
+XGBoost DSS - Evaluation metrics (test set)
+==================================================
+
+Label mapping (encoded -> class):
+  0: BUY
+  1: HOLD
+  2: SELL
+
+Classification report:
+              precision    recall  f1-score   support
+
+         BUY       0.92      0.41      0.57        29
+        HOLD       0.00      0.00      0.00         1
+        SELL       0.14      1.00      0.25         1
+
+    accuracy                           0.42        31
+   macro avg       0.36      0.47      0.27        31
+weighted avg       0.87      0.42      0.54        31
+
+Confusion matrix:
+[[12 11  6]
+ [ 1  0  0]
+ [ 0  0  1]]
+
+Accuracy:     0.4194
+F1 macro:    0.2738
+F1 weighted: 0.5426

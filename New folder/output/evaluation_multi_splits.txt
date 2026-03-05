@@ -1,0 +1,31 @@
+XGBoost DSS - Đánh giá nhiều cách chia train/test
+============================================================
+
+Chronological = giữ thứ tự thời gian (phù hợp production).
+Stratified = test có đủ lớp BUY/HOLD/SELL (chỉ để so sánh).
+
+------------------------------------------------------------
+Split: chrono_70/30
+  Accuracy: 0.2766  F1 macro: 0.2495  F1 weighted: 0.3039
+  Test support: {np.str_('BUY'): 31, np.str_('HOLD'): 11, np.str_('SELL'): 5}
+
+Split: chrono_80/20
+  Accuracy: 0.4194  F1 macro: 0.2738  F1 weighted: 0.5426
+  Test support: {np.str_('BUY'): 29, np.str_('HOLD'): 1, np.str_('SELL'): 1}
+
+Split: chrono_90/10
+  Accuracy: 0.2500  F1 macro: 0.1333  F1 weighted: 0.3750
+  Test support: {np.str_('BUY'): 15, np.str_('HOLD'): 1, np.str_('SELL'): 0}
+
+Split: stratified_80/20
+  Accuracy: 0.8387  F1 macro: 0.5877  F1 weighted: 0.8522
+  Test support: {np.str_('BUY'): 14, np.str_('HOLD'): 16, np.str_('SELL'): 1}
+
+============================================================
+
+KHUYẾN NGHỊ CẢI THIỆN:
+
+1. Đa dạng dataset: thêm dữ liệu (nhiều tháng, nhiều mã vàng); điều chỉnh add_t3_target để có mẫu SELL.
+2. Chia dữ liệu: Chronological cho production; Stratified chỉ để kiểm tra khi test thiếu lớp.
+3. Mất cân bằng: đã dùng sample_weight='balanced'; có thể thử SMOTE/oversample BUY,SELL hoặc undersample HOLD.
+4. Features: thêm/cải thiện chỉ báo kỹ thuật; xem feature importance sau mỗi lần train.
