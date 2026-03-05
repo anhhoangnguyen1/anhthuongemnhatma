@@ -9,9 +9,12 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import classification_report, confusion_matrix, f1_score
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import LabelEncoder, RobustScaler
 from sklearn.utils.class_weight import compute_sample_weight
 from xgboost import XGBClassifier
+
+from preprocessing import WinsorizerTransformer  # noqa: F401 – re-exported for joblib
 
 
 INPUT_FILE = "master_dss_dataset.csv"
@@ -124,6 +127,33 @@ def add_technical_indicators(df: pd.DataFrame) -> pd.DataFrame:
 
     # Keep only rows where long-window indicators are defined.
     df = df.dropna(subset=["MA20", "RSI_14"]).reset_index(drop=True)
+    return df
+
+
+def add_lag_features(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Add multi-horizon momentum and macro trend features using full-dataset history.
+
+    Must be called BEFORE add_t3_target and engineer_features so the full time
+    series is available for rolling/shift operations. Results are retained as-is
+    in engineer_features (not recomputed there).
+    """
+    df = df.copy()
+    grouped = df.groupby("gold_code", dropna=False)
+
+    # Cumulative price returns at multiple horizons
+    df["cum_return_3d_pct"] = grouped["sell_price"].pct_change(3) * 100.0
+    df["cum_return_7d_pct"] = grouped["sell_price"].pct_change(7) * 100.0
+
+    # RSI momentum (change in RSI over 3 days detects divergence)
+    df["rsi_change_3d"] = grouped["RSI_14"].transform(lambda s: s.diff(3))
+
+    # World gold trend (5-day % change)
+    df["world_chg_5d_pct"] = grouped["world_price_vnd"].pct_change(5) * 100.0
+
+    # DXY trend (5-day % change; USD strength signal)
+    df["dxy_chg_5d_pct"] = grouped["dxy_index"].pct_change(5) * 100.0
+
     return df
 
 
@@ -241,23 +271,43 @@ def scale_features_train_test(
     scaler_path: Path,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Fit StandardScaler on train split only and transform both splits.
+    Preprocess features on train split and apply to test:
 
-    One-hot gold_code columns are excluded from scaling.
-    Constant columns are intentionally kept; StandardScaler handles them safely.
+    1. Drop constant / near-zero-variance columns (detected on train).
+    2. Winsorize numeric features to [1st, 99th] percentile of train.
+    3. Apply RobustScaler (median/IQR — robust to financial outliers).
+
+    One-hot gold_code columns are excluded from all transformations.
+    The fitted preprocessor Pipeline is saved to scaler_path.
     """
-    one_hot_columns = [column for column in X_train.columns if column.startswith("gold_code_")]
-    scale_candidates = [column for column in X_train.columns if column not in one_hot_columns]
-    scale_columns = [column for column in scale_candidates if pd.api.types.is_numeric_dtype(X_train[column])]
+    X_train = X_train.copy()
+    X_test = X_test.copy()
 
-    scaler = StandardScaler()
+    one_hot_columns = [c for c in X_train.columns if c.startswith("gold_code_")]
+    scale_candidates = [c for c in X_train.columns if c not in one_hot_columns]
+    scale_columns = [c for c in scale_candidates if pd.api.types.is_numeric_dtype(X_train[c])]
+
+    # Step 1: drop constant / near-zero-variance features (std < 1e-8 on train)
+    constant_cols = [c for c in scale_columns if X_train[c].std() < 1e-8]
+    if constant_cols:
+        print(f"[PREPROCESS] Dropping {len(constant_cols)} constant features: {constant_cols}")
+        X_train = X_train.drop(columns=constant_cols)
+        X_test = X_test.drop(columns=constant_cols, errors="ignore")
+        scale_columns = [c for c in scale_columns if c not in constant_cols]
+
+    # Step 2 + 3: Winsorize then RobustScale (fit only on train)
+    preprocessor = Pipeline([
+        ("winsorize", WinsorizerTransformer(lower_pct=1.0, upper_pct=99.0)),
+        ("scale", RobustScaler()),
+    ])
+
     if scale_columns:
-        X_train.loc[:, scale_columns] = scaler.fit_transform(X_train[scale_columns])
-        X_test.loc[:, scale_columns] = scaler.transform(X_test[scale_columns])
+        X_train[scale_columns] = preprocessor.fit_transform(X_train[scale_columns].values)
+        X_test[scale_columns] = preprocessor.transform(X_test[scale_columns].values)
     else:
-        scaler.fit(np.zeros((len(X_train), 1)))
+        preprocessor.fit(np.zeros((len(X_train), 1)))
 
-    joblib.dump(scaler, scaler_path)
+    joblib.dump(preprocessor, scaler_path)
     return X_train, X_test
 
 
@@ -433,6 +483,7 @@ def main() -> None:
 
     df = load_and_resample_daily(input_path)
     df = add_technical_indicators(df)
+    df = add_lag_features(df)
     df, label_encoder = add_t3_target(
         df,
         hold_band_ratio=args.hold_band,

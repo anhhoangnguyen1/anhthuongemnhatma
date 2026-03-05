@@ -111,6 +111,7 @@ def _load_model_and_scaler():
 
 def _run_pipeline_and_predict(gold_code: str | None = None):
     from train_xgboost_dss import (
+        add_lag_features,
         add_technical_indicators,
         add_t3_target,
         engineer_features,
@@ -118,7 +119,7 @@ def _run_pipeline_and_predict(gold_code: str | None = None):
     )
 
     df = load_and_resample_daily(_get_master_path())
-    # Nếu chọn 1 mã vàng: lọc để mỗi ngày = 1 dòng = 1 lần dự đoán, giá và dự đoán đều của mã đó
+    # Nếu chọn 1 mã vàng: lọc để mỗi ngày = 1 dòng = 1 lần dự đoán
     if gold_code and gold_code.strip():
         allowed = _get_gold_codes()
         if gold_code not in allowed:
@@ -128,6 +129,9 @@ def _run_pipeline_and_predict(gold_code: str | None = None):
             return None
 
     df = add_technical_indicators(df)
+    # Lag features phải tính trên FULL dataset (trước khi lọc 3 ngày cuối)
+    df = add_lag_features(df)
+
     # Giá theo ngày lấy TRƯỚC add_t3_target để giữ đủ ngày
     daily_price = df.groupby("timestamp")["sell_price"].mean().reset_index()
     daily_price.columns = ["date", "price"]
@@ -143,24 +147,28 @@ def _run_pipeline_and_predict(gold_code: str | None = None):
     target_col = "target_encoded"
     if target_col not in df_with_target.columns:
         return None
-    X = df_with_target.drop(columns=[target_col]).copy()
-    if "timestamp" not in X.columns:
-        return None
-    X = X.drop(columns=["timestamp"])
-
-    one_hot = [c for c in X.columns if c.startswith("gold_code_")]
-    scale_cols = [c for c in X.columns if c not in one_hot and pd.api.types.is_numeric_dtype(X[c])]
-    scaler = joblib.load(SCALER_PATH)
-    X_scaled = X.copy()
-    if scale_cols:
-        X_scaled[scale_cols] = scaler.transform(X[scale_cols])
 
     model = joblib.load(MODEL_PATH)
-    if hasattr(model, "feature_names_in_"):
-        X_scaled = X_scaled.reindex(columns=model.feature_names_in_, fill_value=0)
-    df_with_target["prediction"] = model.predict(X_scaled)
+    scaler = joblib.load(SCALER_PATH)
 
-    # Inference cho 3 ngày cuối (không cần data 3 ngày sau): tính feature và predict cho đúng ngày mới nhất
+    def _predict_block(df_block: pd.DataFrame) -> pd.Series:
+        """Reindex → scale → predict cho một block DataFrame đã qua engineer_features."""
+        X = df_block.drop(columns=[target_col], errors="ignore").copy()
+        X = X.drop(columns=["timestamp"], errors="ignore")
+        # Reindex TRƯỚC khi scale để scale_cols khớp chính xác với scaler đã fit
+        if hasattr(model, "feature_names_in_"):
+            X = X.reindex(columns=model.feature_names_in_, fill_value=0)
+        one_hot = [c for c in X.columns if c.startswith("gold_code_")]
+        scale_cols = [c for c in X.columns if c not in one_hot and pd.api.types.is_numeric_dtype(X[c])]
+        X_scaled = X.copy()
+        if scale_cols:
+            X_scaled[scale_cols] = scaler.transform(X[scale_cols].values)
+        return pd.Series(model.predict(X_scaled), index=df_block.index)
+
+    df_with_target["prediction"] = _predict_block(df_with_target)
+
+    # Inference cho 3 ngày cuối (không cần data 3 ngày sau):
+    # df đã có lag features từ add_lag_features trên toàn bộ dataset
     last_dates = sorted(df["timestamp"].dropna().unique())[-3:]
     df_last = df[df["timestamp"].isin(last_dates)].copy()
     if not df_last.empty:
@@ -172,14 +180,7 @@ def _run_pipeline_and_predict(gold_code: str | None = None):
         try:
             df_last = engineer_features(df_last)
             if not df_last.empty and target_col in df_last.columns:
-                X_last = df_last.drop(columns=[target_col]).copy()
-                X_last = X_last.drop(columns=["timestamp"], errors="ignore")
-                scale_cols_last = [c for c in scale_cols if c in X_last.columns]
-                if scale_cols_last:
-                    X_last[scale_cols_last] = scaler.transform(X_last[scale_cols_last])
-                if hasattr(model, "feature_names_in_"):
-                    X_last = X_last.reindex(columns=model.feature_names_in_, fill_value=0)
-                df_last["prediction"] = model.predict(X_last)
+                df_last["prediction"] = _predict_block(df_last)
                 df_with_target = pd.concat([df_with_target, df_last], ignore_index=True)
         except Exception:
             pass
