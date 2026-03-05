@@ -14,7 +14,7 @@ from sklearn.preprocessing import LabelEncoder, RobustScaler
 from sklearn.utils.class_weight import compute_sample_weight
 from xgboost import XGBClassifier
 
-from preprocessing import WinsorizerTransformer  # noqa: F401 – re-exported for joblib
+from preprocessing import PreprocessorPipeline, WinsorizerTransformer  # noqa: F401 – re-exported for joblib
 
 
 INPUT_FILE = "master_dss_dataset.csv"
@@ -295,17 +295,14 @@ def scale_features_train_test(
         X_test = X_test.drop(columns=constant_cols, errors="ignore")
         scale_columns = [c for c in scale_columns if c not in constant_cols]
 
-    # Step 2 + 3: Winsorize then RobustScale (fit only on train)
-    preprocessor = Pipeline([
-        ("winsorize", WinsorizerTransformer(lower_pct=1.0, upper_pct=99.0)),
-        ("scale", RobustScaler()),
-    ])
-
+    # Step 2 + 3: Winsorize then RobustScale (fit only on train).
+    # PreprocessorPipeline stores scale_columns_ so transform_df() is always column-safe.
+    preprocessor = PreprocessorPipeline()
     if scale_columns:
-        X_train[scale_columns] = preprocessor.fit_transform(X_train[scale_columns].values)
-        X_test[scale_columns] = preprocessor.transform(X_test[scale_columns].values)
+        X_train = preprocessor.fit_transform_df(X_train, scale_columns)
+        X_test = preprocessor.transform_df(X_test)
     else:
-        preprocessor.fit(np.zeros((len(X_train), 1)))
+        preprocessor.fit(np.zeros((len(X_train), 1)), scale_columns=[])
 
     joblib.dump(preprocessor, scaler_path)
     return X_train, X_test

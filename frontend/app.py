@@ -103,11 +103,6 @@ def _get_gold_codes():
     return _gold_codes_cache
 
 
-def _load_model_and_scaler():
-    model = joblib.load(MODEL_PATH)
-    scaler = joblib.load(SCALER_PATH)
-    return model, scaler
-
 
 def _run_pipeline_and_predict(gold_code: str | None = None):
     from train_xgboost_dss import (
@@ -149,21 +144,19 @@ def _run_pipeline_and_predict(gold_code: str | None = None):
         return None
 
     model = joblib.load(MODEL_PATH)
-    scaler = joblib.load(SCALER_PATH)
+    preprocessor = joblib.load(SCALER_PATH)
 
     def _predict_block(df_block: pd.DataFrame) -> pd.Series:
-        """Reindex → scale → predict cho một block DataFrame đã qua engineer_features."""
+        """Reindex → scale (column-safe) → predict."""
         X = df_block.drop(columns=[target_col], errors="ignore").copy()
         X = X.drop(columns=["timestamp"], errors="ignore")
-        # Reindex TRƯỚC khi scale để scale_cols khớp chính xác với scaler đã fit
+        # Reindex to model's training columns first
         if hasattr(model, "feature_names_in_"):
             X = X.reindex(columns=model.feature_names_in_, fill_value=0)
-        one_hot = [c for c in X.columns if c.startswith("gold_code_")]
-        scale_cols = [c for c in X.columns if c not in one_hot and pd.api.types.is_numeric_dtype(X[c])]
-        X_scaled = X.copy()
-        if scale_cols:
-            X_scaled[scale_cols] = scaler.transform(X[scale_cols].values)
-        return pd.Series(model.predict(X_scaled), index=df_block.index)
+        # transform_df handles missing/extra columns using saved scale_columns_
+        if hasattr(preprocessor, "transform_df"):
+            X = preprocessor.transform_df(X)
+        return pd.Series(model.predict(X), index=df_block.index)
 
     df_with_target["prediction"] = _predict_block(df_with_target)
 
