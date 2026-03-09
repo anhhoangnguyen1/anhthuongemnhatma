@@ -80,6 +80,7 @@
       cursor: pointer;
     }
     .gold-code-select:hover, .gold-code-select:focus { border-color: #3b82f6; outline: none; }
+    input[type=checkbox] { accent-color: #3b82f6; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -112,6 +113,34 @@
     <div class="chart-wrap">
       <canvas id="chart"></canvas>
     </div>
+  </div>
+
+  <!-- Macro chart -->
+  <div class="card" id="macro-card">
+    <h2 style="margin-top:0;">Chỉ số vĩ mô – Lãi suất FED &amp; DXY (1 năm)
+      <span style="font-size:0.75rem;font-weight:400;color:#64748b;margin-left:0.5rem;">(FED: dữ liệu FRED fallback 4.5% cố định do timeout)</span>
+    </h2>
+    <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:0.75rem;" id="macro-legend-extra"></div>
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:0.5rem;">
+      <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;">
+        <input type="checkbox" id="tog-fed"   checked> <span style="color:#f59e0b;">●</span> Lãi suất FED (%)
+      </label>
+      <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;">
+        <input type="checkbox" id="tog-dxy"   checked> <span style="color:#38bdf8;">●</span> DXY Index
+      </label>
+      <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;">
+        <input type="checkbox" id="tog-vn"    checked> <span style="color:#a78bfa;">●</span> Lãi suất VN (%)
+      </label>
+      <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;">
+        <input type="checkbox" id="tog-world"> <span style="color:#4ade80;">●</span> Vàng thế giới (USD/oz)
+      </label>
+    </div>
+    <div class="chart-wrap" style="height:300px;">
+      <canvas id="macro-chart"></canvas>
+    </div>
+    <p style="margin:0.5rem 0 0;font-size:0.8rem;color:#64748b;">
+      Nguồn: Yahoo Finance (DXY, USD/VND, Gold) · FRED (FED) · Webgia (VN lãi suất)
+    </p>
   </div>
 
   <div id="error-box"></div>
@@ -247,6 +276,119 @@
       });
     }
 
+    // ─── Macro chart ────────────────────────────────────────────────
+    const macroCtx = document.getElementById('macro-chart').getContext('2d');
+    let macroChart = null;
+    let _macroData = null;
+
+    const MACRO_DATASETS_CFG = [
+      { key: 'fed_rate',   label: 'Lãi suất FED (%)',     color: '#f59e0b', yAxis: 'yRate',   tog: 'tog-fed',   order: 1 },
+      { key: 'vn_rate',    label: 'Lãi suất VN (%)',      color: '#a78bfa', yAxis: 'yRate',   tog: 'tog-vn',    order: 2 },
+      { key: 'dxy_index',  label: 'DXY Index',             color: '#38bdf8', yAxis: 'yDXY',   tog: 'tog-dxy',   order: 3 },
+      { key: 'world_gold', label: 'Vàng TG (USD/oz)',      color: '#4ade80', yAxis: 'yGold',  tog: 'tog-world', order: 4 },
+    ];
+
+    function buildMacroChart(data) {
+      if (macroChart) macroChart.destroy();
+      const labels = (data.dates || []).map(d => d.slice(0, 10));
+      const datasets = [];
+      const allVisible = {};
+
+      MACRO_DATASETS_CFG.forEach(cfg => {
+        const vals = data[cfg.key] || [];
+        if (!vals.length) return;
+        const el = document.getElementById(cfg.tog);
+        const visible = el ? el.checked : true;
+        allVisible[cfg.key] = true;
+        datasets.push({
+          label: cfg.label,
+          data: vals,
+          borderColor: cfg.color,
+          backgroundColor: cfg.color + '22',
+          fill: cfg.key === 'fed_rate',
+          tension: 0.2,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          yAxisID: cfg.yAxis,
+          order: cfg.order,
+          hidden: !visible,
+          borderWidth: cfg.key === 'fed_rate' ? 2.5 : 1.5,
+          borderDash: cfg.key === 'vn_rate' ? [5, 3] : [],
+        });
+      });
+
+      macroChart = new Chart(macroCtx, {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { intersect: false, mode: 'index' },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function(ctx) {
+                  const v = ctx.raw;
+                  const cfg = MACRO_DATASETS_CFG.find(c => c.label === ctx.dataset.label);
+                  if (!cfg) return ctx.dataset.label + ': ' + v;
+                  if (cfg.yAxis === 'yRate') return ctx.dataset.label + ': ' + (v != null ? v.toFixed(2) + '%' : 'N/A');
+                  if (cfg.yAxis === 'yGold') return ctx.dataset.label + ': $' + (v != null ? Number(v).toLocaleString('en-US') : 'N/A');
+                  return ctx.dataset.label + ': ' + (v != null ? Number(v).toFixed(2) : 'N/A');
+                }
+              }
+            }
+          },
+          scales: {
+            x: { title: { display: true, text: 'Ngày' }, ticks: { maxTicksLimit: 12, color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+            yRate: {
+              type: 'linear', position: 'left',
+              title: { display: true, text: 'Lãi suất (%)', color: '#94a3b8' },
+              ticks: { color: '#f59e0b', callback: v => v.toFixed(2) + '%' },
+              grid: { color: 'rgba(255,255,255,0.05)' },
+            },
+            yDXY: {
+              type: 'linear', position: 'right',
+              title: { display: true, text: 'DXY / Gold USD', color: '#94a3b8' },
+              ticks: { color: '#38bdf8' },
+              grid: { drawOnChartArea: false },
+            },
+            yGold: {
+              type: 'linear', position: 'right',
+              display: false,
+              ticks: { color: '#4ade80' },
+              grid: { drawOnChartArea: false },
+            },
+          }
+        }
+      });
+    }
+
+    function toggleMacroSeries() {
+      if (!macroChart || !_macroData) return;
+      MACRO_DATASETS_CFG.forEach(cfg => {
+        const el = document.getElementById(cfg.tog);
+        const ds = macroChart.data.datasets.find(d => d.label === cfg.label);
+        if (ds && el) ds.hidden = !el.checked;
+      });
+      macroChart.update();
+    }
+
+    async function loadMacro() {
+      try {
+        const r = await fetch('/api/macro');
+        const data = await r.json();
+        if (!r.ok) return;
+        _macroData = data;
+        buildMacroChart(data);
+        MACRO_DATASETS_CFG.forEach(cfg => {
+          const el = document.getElementById(cfg.tog);
+          if (el) el.addEventListener('change', toggleMacroSeries);
+        });
+      } catch (e) {}
+    }
+    // ─────────────────────────────────────────────────────────────────
+
     (async function init() {
       const sel = document.getElementById('gold-code');
       if (sel) sel.addEventListener('change', load);
@@ -256,6 +398,7 @@
         fillGoldCodeOptions(data.gold_codes || []);
       } catch (e) {}
       load();
+      loadMacro();
     })();
   </script>
 </body>

@@ -225,6 +225,55 @@ def api_gold_codes():
     return jsonify({"gold_codes": _get_gold_codes()})
 
 
+@app.route("/api/macro")
+def api_macro():
+    """Trả dữ liệu lãi suất FED, DXY, tỷ giá USD/VND, giá vàng thế giới để vẽ biểu đồ macro."""
+    macro_candidates = [
+        ROOT / "MACRO_FEATURES_1_YEAR.csv",
+        ROOT / "input_1year" / "MACRO_FEATURES_1_YEAR.csv",
+    ]
+    macro_path = next((p for p in macro_candidates if p.exists()), None)
+    if macro_path is None:
+        return jsonify({"error": "Macro file not found. Run fetch_macro_1_year.py first."}), 404
+
+    try:
+        df = pd.read_csv(macro_path)
+        date_col = next((c for c in df.columns if c.lower() in ("date", "ngay", "timestamp")), None)
+        if date_col is None:
+            return jsonify({"error": "No date column in macro file."}), 500
+
+        df["_date"] = pd.to_datetime(df[date_col], errors="coerce").dt.normalize()
+        df = df.dropna(subset=["_date"]).sort_values("_date").reset_index(drop=True)
+
+        def col_or_none(candidates):
+            for c in candidates:
+                if c in df.columns:
+                    return c
+            return None
+
+        fed_col   = col_or_none(["fed_rate", "Fed_Rate"])
+        dxy_col   = col_or_none(["dxy_index", "DXY_Index"])
+        vn_col    = col_or_none(["interest_rate_market", "interest_rate_state"])
+        usd_col   = col_or_none(["usd_vnd_rate", "USD_VND_Rate"])
+        world_col = col_or_none(["World_Price_USD_Ounce", "world_price_usd_ounce"])
+
+        def to_list(col):
+            if col and col in df.columns:
+                return pd.to_numeric(df[col], errors="coerce").round(4).tolist()
+            return []
+
+        return jsonify({
+            "dates":       df["_date"].dt.strftime("%Y-%m-%d").tolist(),
+            "fed_rate":    to_list(fed_col),
+            "dxy_index":   to_list(dxy_col),
+            "vn_rate":     to_list(vn_col),
+            "usd_vnd":     to_list(usd_col),
+            "world_gold":  to_list(world_col),
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/predict")
 def api_predict():
     gold_code = request.args.get("gold_code", "").strip() or None
