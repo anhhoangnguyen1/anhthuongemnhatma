@@ -8,7 +8,7 @@
     "BUY",
     "NOT_BUY"
   ],
-  "optimal_threshold": 0.3,
+  "optimal_threshold": 0.1,
   "recent_years": null,
-  "horizon": 3
+  "horizon": 5
 }

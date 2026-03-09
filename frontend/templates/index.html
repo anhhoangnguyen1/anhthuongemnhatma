@@ -1,12 +1,16 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dự đoán giá vàng – DSS</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       font-family: 'Segoe UI', system-ui, sans-serif;
       margin: 0;
@@ -15,17 +19,20 @@
       color: #e2e8f0;
       min-height: 100vh;
     }
+
     h1 {
       text-align: center;
       font-weight: 700;
       margin-bottom: 0.5rem;
       color: #f8fafc;
     }
+
     .subtitle {
       text-align: center;
       color: #94a3b8;
       margin-bottom: 2rem;
     }
+
     .card {
       background: rgba(30, 41, 59, 0.8);
       border-radius: 12px;
@@ -33,6 +40,7 @@
       margin-bottom: 1.5rem;
       border: 1px solid rgba(71, 85, 105, 0.5);
     }
+
     .prediction-row {
       display: flex;
       align-items: center;
@@ -40,25 +48,49 @@
       gap: 1rem;
       flex-wrap: wrap;
     }
+
     .prediction-badge {
       font-size: 1.25rem;
       font-weight: 700;
       padding: 0.75rem 1.5rem;
       border-radius: 10px;
     }
-    .prediction-badge.buy     { background: #166534; color: #bbf7d0; }
-    .prediction-badge.hold    { background: #854d0e; color: #fef08a; }
-    .prediction-badge.sell    { background: #991b1b; color: #fecaca; }
-    .prediction-badge.not_buy { background: #1e3a5f; color: #93c5fd; }
-    .prediction-badge.na      { background: #475569; color: #94a3b8; }
+
+    .prediction-badge.buy {
+      background: #166534;
+      color: #bbf7d0;
+    }
+
+    .prediction-badge.hold {
+      background: #854d0e;
+      color: #fef08a;
+    }
+
+    .prediction-badge.sell {
+      background: #991b1b;
+      color: #fecaca;
+    }
+
+    .prediction-badge.not_buy {
+      background: #1e3a5f;
+      color: #93c5fd;
+    }
+
+    .prediction-badge.na {
+      background: #475569;
+      color: #94a3b8;
+    }
+
     .latest-meta {
       color: #94a3b8;
       font-size: 0.9rem;
     }
+
     .chart-wrap {
       position: relative;
       height: 380px;
     }
+
     .error-msg {
       background: #7f1d1d;
       color: #fecaca;
@@ -66,10 +98,27 @@
       border-radius: 8px;
       margin: 1rem 0;
     }
-    .loading { color: #94a3b8; }
-    .card-dropdown { margin-bottom: 1rem; }
-    .dropdown-label { margin: 0 0 0.5rem 0; font-size: 1rem; color: #f8fafc; }
-    .dropdown-row { flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+
+    .loading {
+      color: #94a3b8;
+    }
+
+    .card-dropdown {
+      margin-bottom: 1rem;
+    }
+
+    .dropdown-label {
+      margin: 0 0 0.5rem 0;
+      font-size: 1rem;
+      color: #f8fafc;
+    }
+
+    .dropdown-row {
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
     .gold-code-select {
       min-width: 220px;
       padding: 0.5rem 0.75rem;
@@ -80,13 +129,196 @@
       border: 1px solid #64748b;
       cursor: pointer;
     }
-    .gold-code-select:hover, .gold-code-select:focus { border-color: #3b82f6; outline: none; }
-    input[type=checkbox] { accent-color: #3b82f6; cursor: pointer; }
+
+    .gold-code-select:hover,
+    .gold-code-select:focus {
+      border-color: #3b82f6;
+      outline: none;
+    }
+
+    input[type=checkbox] {
+      accent-color: #3b82f6;
+      cursor: pointer;
+    }
+
+    /* ── News section ── */
+    .news-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .news-header h2 {
+      margin: 0;
+    }
+
+    .news-filter-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .news-filter-select {
+      padding: 0.35rem 0.6rem;
+      font-size: 0.85rem;
+      border-radius: 6px;
+      background: #1e293b;
+      color: #e2e8f0;
+      border: 1px solid #64748b;
+      cursor: pointer;
+    }
+
+    .mood-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.6rem 1rem;
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.6);
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .mood-label {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .mood-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .mood-chip.pos {
+      background: #166534;
+      color: #bbf7d0;
+    }
+
+    .mood-chip.neg {
+      background: #991b1b;
+      color: #fecaca;
+    }
+
+    .mood-chip.neu {
+      background: #854d0e;
+      color: #fef08a;
+    }
+
+    .news-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      max-height: 520px;
+      overflow-y: auto;
+      padding-right: 0.25rem;
+    }
+
+    .news-list::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    .news-list::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 4px;
+    }
+
+    .news-item {
+      display: flex;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid rgba(71, 85, 105, 0.3);
+      transition: border-color 0.15s;
+    }
+
+    .news-item:hover {
+      border-color: #3b82f6;
+    }
+
+    .news-sentiment-dot {
+      flex-shrink: 0;
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.75rem;
+    }
+
+    .news-sentiment-dot.pos {
+      background: #166534;
+      color: #bbf7d0;
+    }
+
+    .news-sentiment-dot.neg {
+      background: #991b1b;
+      color: #fecaca;
+    }
+
+    .news-sentiment-dot.neu {
+      background: #475569;
+      color: #94a3b8;
+    }
+
+    .news-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .news-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #e2e8f0;
+      text-decoration: none;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .news-title:hover {
+      color: #60a5fa;
+    }
+
+    .news-meta {
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-top: 0.25rem;
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .news-source-badge {
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      background: #1e3a5f;
+      color: #93c5fd;
+    }
+
+    .news-lang-vi .news-source-badge {
+      background: #3b1764;
+      color: #c4b5fd;
+    }
   </style>
 </head>
+
 <body>
   <h1>Dự đoán giá vàng</h1>
-  <p class="subtitle">Mô hình XGBoost BUY / HOLD / SELL</p>
+  <p class="subtitle">Mô hình Dự đoán giá vàng (DSS)</p>
 
   <div class="card card-dropdown">
     <h3 class="dropdown-label">Chọn mã vàng</h3>
@@ -119,18 +351,19 @@
   <!-- Macro chart -->
   <div class="card" id="macro-card">
     <h2 style="margin-top:0;">Chỉ số vĩ mô – Lãi suất FED &amp; DXY (1 năm)
-      <span style="font-size:0.75rem;font-weight:400;color:#64748b;margin-left:0.5rem;">(FED: dữ liệu FRED fallback 4.5% cố định do timeout)</span>
+      <span style="font-size:0.75rem;font-weight:400;color:#64748b;margin-left:0.5rem;">(FED: dữ liệu FRED fallback 4.5%
+        cố định do timeout)</span>
     </h2>
     <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:0.75rem;" id="macro-legend-extra"></div>
     <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:0.5rem;">
       <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;">
-        <input type="checkbox" id="tog-fed"   checked> <span style="color:#f59e0b;">●</span> Lãi suất FED (%)
+        <input type="checkbox" id="tog-fed" checked> <span style="color:#f59e0b;">●</span> Lãi suất FED (%)
       </label>
       <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;">
-        <input type="checkbox" id="tog-dxy"   checked> <span style="color:#38bdf8;">●</span> DXY Index
+        <input type="checkbox" id="tog-dxy" checked> <span style="color:#38bdf8;">●</span> DXY Index
       </label>
       <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;">
-        <input type="checkbox" id="tog-vn"    checked> <span style="color:#a78bfa;">●</span> Lãi suất VN (%)
+        <input type="checkbox" id="tog-vn" checked> <span style="color:#a78bfa;">●</span> Lãi suất VN (%)
       </label>
       <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;">
         <input type="checkbox" id="tog-world"> <span style="color:#4ade80;">●</span> Vàng thế giới (USD/oz)
@@ -141,6 +374,36 @@
     </div>
     <p style="margin:0.5rem 0 0;font-size:0.8rem;color:#64748b;">
       Nguồn: Yahoo Finance (DXY, USD/VND, Gold) · FRED (FED) · Webgia (VN lãi suất)
+    </p>
+  </div>
+
+  <!-- News section -->
+  <div class="card" id="news-card">
+    <div class="news-header">
+      <h2 style="margin:0;">Tin t&#7913;c &#7843;nh h&#432;&#7903;ng gi&#225; v&#224;ng</h2>
+      <div class="news-filter-row">
+        <select id="news-source-filter" class="news-filter-select" title="L&#7885;c theo ngu&#7891;n">
+          <option value="all">T&#7845;t c&#7843; ngu&#7891;n</option>
+        </select>
+        <button onclick="loadNews()" class="news-filter-select" style="cursor:pointer;">L&#224;m m&#7899;i</button>
+      </div>
+    </div>
+
+    <div class="mood-bar" id="news-mood-bar">
+      <span class="mood-label">T&#226;m l&#253; th&#7883; tr&#432;&#7901;ng:</span>
+      <span id="mood-indicator" class="mood-chip neu">&#272;ang t&#7843;i...</span>
+      <span id="mood-pos" class="mood-chip pos" style="display:none;"></span>
+      <span id="mood-neg" class="mood-chip neg" style="display:none;"></span>
+      <span id="mood-neu" class="mood-chip neu" style="display:none;"></span>
+    </div>
+
+    <div class="news-list" id="news-list">
+      <div style="text-align:center;color:#64748b;padding:2rem;">&#272;ang t&#7843;i tin t&#7913;c...</div>
+    </div>
+
+    <p style="margin:0.75rem 0 0;font-size:0.75rem;color:#64748b;">
+      Nguon: VnExpress, CafeF (VN) &middot; Kitco, Google News (EN) &middot; Sentiment: FinVADER + VN Lexicon &middot;
+      Cache 30 phut
     </p>
   </div>
 
@@ -193,14 +456,14 @@
       const labels = (data.dates || []).map(d => d.slice(0, 10));
       const prices = data.prices || [];
       const preds = data.predictions || [];
-      const probs   = data.probabilities || [];
+      const probs = data.probabilities || [];
       const colors = preds.map((p, i) => {
         if (p === 'N/A' || p == null) return 'rgba(0,0,0,0)';
         const prob = (probs[i] != null) ? probs[i] : (p === 'BUY' ? 0.7 : 0.3);
-        if (p === 'BUY')     return `rgba(34,197,94,${Math.max(0.3, prob).toFixed(2)})`;
-        if (p === 'NOT_BUY') return `rgba(96,165,250,${Math.max(0.3, 1-prob).toFixed(2)})`;
-        if (p === 'SELL')    return 'rgba(239,68,68,0.85)';
-        if (p === 'HOLD')    return 'rgba(234,179,8,0.85)';
+        if (p === 'BUY') return `rgba(34,197,94,${Math.max(0.3, prob).toFixed(2)})`;
+        if (p === 'NOT_BUY') return `rgba(96,165,250,${Math.max(0.3, 1 - prob).toFixed(2)})`;
+        if (p === 'SELL') return 'rgba(239,68,68,0.85)';
+        if (p === 'HOLD') return 'rgba(234,179,8,0.85)';
         return 'rgba(0,0,0,0)';
       });
 
@@ -239,7 +502,7 @@
             legend: { position: 'top' },
             tooltip: {
               callbacks: {
-                afterLabel: function(ctx) {
+                afterLabel: function (ctx) {
                   const p = preds[ctx.dataIndex];
                   const prob = probs[ctx.dataIndex];
                   let label = 'Dự đoán: ' + (p && p !== 'N/A' ? p : 'chưa có (cần dữ liệu 3 ngày sau)');
@@ -248,7 +511,7 @@
                   }
                   return label;
                 },
-                label: function(ctx) {
+                label: function (ctx) {
                   const v = ctx.raw;
                   return (ctx.dataset.label || '') + ': ' + (typeof v === 'number' ? v.toLocaleString('vi-VN') + ' VND' : v);
                 },
@@ -297,7 +560,7 @@
       if (!Array.isArray(codes) || codes.length === 0) return;
       const already = sel.options.length > 1;
       if (already) return;
-      codes.forEach(function(code) {
+      codes.forEach(function (code) {
         const opt = document.createElement('option');
         opt.value = code;
         opt.textContent = code;
@@ -311,10 +574,10 @@
     let _macroData = null;
 
     const MACRO_DATASETS_CFG = [
-      { key: 'fed_rate',   label: 'Lãi suất FED (%)',     color: '#f59e0b', yAxis: 'yRate',   tog: 'tog-fed',   order: 1 },
-      { key: 'vn_rate',    label: 'Lãi suất VN (%)',      color: '#a78bfa', yAxis: 'yRate',   tog: 'tog-vn',    order: 2 },
-      { key: 'dxy_index',  label: 'DXY Index',             color: '#38bdf8', yAxis: 'yDXY',   tog: 'tog-dxy',   order: 3 },
-      { key: 'world_gold', label: 'Vàng TG (USD/oz)',      color: '#4ade80', yAxis: 'yGold',  tog: 'tog-world', order: 4 },
+      { key: 'fed_rate', label: 'Lãi suất FED (%)', color: '#f59e0b', yAxis: 'yRate', tog: 'tog-fed', order: 1 },
+      { key: 'vn_rate', label: 'Lãi suất VN (%)', color: '#a78bfa', yAxis: 'yRate', tog: 'tog-vn', order: 2 },
+      { key: 'dxy_index', label: 'DXY Index', color: '#38bdf8', yAxis: 'yDXY', tog: 'tog-dxy', order: 3 },
+      { key: 'world_gold', label: 'Vàng TG (USD/oz)', color: '#4ade80', yAxis: 'yGold', tog: 'tog-world', order: 4 },
     ];
 
     function buildMacroChart(data) {
@@ -357,7 +620,7 @@
             legend: { display: false },
             tooltip: {
               callbacks: {
-                label: function(ctx) {
+                label: function (ctx) {
                   const v = ctx.raw;
                   const cfg = MACRO_DATASETS_CFG.find(c => c.label === ctx.dataset.label);
                   if (!cfg) return ctx.dataset.label + ': ' + v;
@@ -414,21 +677,134 @@
           const el = document.getElementById(cfg.tog);
           if (el) el.addEventListener('change', toggleMacroSeries);
         });
-      } catch (e) {}
+      } catch (e) { }
+    }
+    // ─────────────────────────────────────────────────────────────────
+
+    // ─── News section ─────────────────────────────────────────────
+    let _newsSources = [];
+
+    function sentimentClass(label) {
+      if (label === 'POSITIVE') return 'pos';
+      if (label === 'NEGATIVE') return 'neg';
+      return 'neu';
+    }
+
+    function sentimentIcon(label) {
+      if (label === 'POSITIVE') return '+';
+      if (label === 'NEGATIVE') return '-';
+      return '~';
+    }
+
+    function renderNewsItem(article) {
+      const cls = sentimentClass(article.sentiment_label);
+      const icon = sentimentIcon(article.sentiment_label);
+      const score = article.sentiment_score != null ? article.sentiment_score.toFixed(2) : '0';
+      const langCls = article.language === 'vi' ? ' news-lang-vi' : '';
+      const date = article.published ? article.published.slice(0, 16) : '';
+      const summary = article.summary ? article.summary.slice(0, 120) : '';
+
+      return `<div class="news-item${langCls}">
+        <div class="news-sentiment-dot ${cls}" title="Sentiment: ${article.sentiment_label} (${score})">
+          ${icon}<br>${score}
+        </div>
+        <div class="news-body">
+          <a href="${article.url}" target="_blank" rel="noopener" class="news-title">${article.title}</a>
+          <div class="news-meta">
+            <span class="news-source-badge">${article.source}</span>
+            <span>${date}</span>
+            <span>${article.language === 'vi' ? 'Ti\u1ebfng Vi\u1ec7t' : 'English'}</span>
+          </div>
+          ${summary ? '<div style="font-size:0.78rem;color:#94a3b8;margin-top:0.3rem;">' + summary + '...</div>' : ''}
+        </div>
+      </div>`;
+    }
+
+    function updateMoodBar(summary, overall) {
+      const indicator = document.getElementById('mood-indicator');
+      const posEl = document.getElementById('mood-pos');
+      const negEl = document.getElementById('mood-neg');
+      const neuEl = document.getElementById('mood-neu');
+
+      let moodText, moodCls;
+      if (overall > 0.15) { moodText = 'T\u00edch c\u1ef1c'; moodCls = 'pos'; }
+      else if (overall < -0.15) { moodText = 'Ti\u00eau c\u1ef1c'; moodCls = 'neg'; }
+      else { moodText = 'Trung t\u00ednh'; moodCls = 'neu'; }
+
+      indicator.textContent = moodText + ' (' + overall.toFixed(2) + ')';
+      indicator.className = 'mood-chip ' + moodCls;
+
+      if (summary) {
+        posEl.textContent = summary.positive + ' t\u00edch c\u1ef1c';
+        posEl.style.display = summary.positive > 0 ? '' : 'none';
+        negEl.textContent = summary.negative + ' ti\u00eau c\u1ef1c';
+        negEl.style.display = summary.negative > 0 ? '' : 'none';
+        neuEl.textContent = summary.neutral + ' trung t\u00ednh';
+        neuEl.style.display = summary.neutral > 0 ? '' : 'none';
+      }
+    }
+
+    function fillNewsSourceFilter(sources) {
+      if (!sources || !sources.length) return;
+      const sel = document.getElementById('news-source-filter');
+      if (sel.options.length > 1) return;
+      sources.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.toLowerCase();
+        opt.textContent = s;
+        sel.appendChild(opt);
+      });
+    }
+
+    async function loadNews() {
+      const filterEl = document.getElementById('news-source-filter');
+      const sourceVal = filterEl ? filterEl.value : 'all';
+      const listEl = document.getElementById('news-list');
+
+      listEl.innerHTML = '<div style="text-align:center;color:#64748b;padding:2rem;">\u0110ang t\u1ea3i tin t\u1ee9c...</div>';
+
+      try {
+        const url = '/api/news' + (sourceVal && sourceVal !== 'all' ? '?source=' + encodeURIComponent(sourceVal) : '');
+        const r = await fetch(url);
+        const data = await r.json();
+
+        if (!r.ok || data.error) {
+          listEl.innerHTML = '<div style="color:#fca5a5;padding:1rem;">L\u1ed7i t\u1ea3i tin t\u1ee9c: ' + (data.error || 'Unknown') + '</div>';
+          return;
+        }
+
+        fillNewsSourceFilter(data.sources || []);
+        updateMoodBar(data.summary, data.overall_sentiment || 0);
+
+        const articles = data.articles || [];
+        if (articles.length === 0) {
+          listEl.innerHTML = '<div style="text-align:center;color:#64748b;padding:2rem;">Kh\u00f4ng t\u00ecm th\u1ea5y tin t\u1ee9c v\u1ec1 v\u00e0ng.</div>';
+          return;
+        }
+
+        listEl.innerHTML = articles.map(renderNewsItem).join('');
+      } catch (e) {
+        listEl.innerHTML = '<div style="color:#fca5a5;padding:1rem;">Kh\u00f4ng k\u1ebft n\u1ed1i \u0111\u01b0\u1ee3c API tin t\u1ee9c.</div>';
+      }
     }
     // ─────────────────────────────────────────────────────────────────
 
     (async function init() {
       const sel = document.getElementById('gold-code');
       if (sel) sel.addEventListener('change', load);
+      const newsFilter = document.getElementById('news-source-filter');
+      if (newsFilter) newsFilter.addEventListener('change', loadNews);
+
       try {
         const r = await fetch('/api/gold_codes');
         const data = await r.json();
         fillGoldCodeOptions(data.gold_codes || []);
-      } catch (e) {}
+      } catch (e) { }
       load();
       loadMacro();
+      loadNews();
     })();
   </script>
 </body>
+
 </html>

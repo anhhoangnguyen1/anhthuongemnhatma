@@ -8,16 +8,16 @@ Label mapping (encoded -> class):
 Classification report:
               precision    recall  f1-score   support
 
-         BUY       0.42      0.17      0.24      4347
-     NOT_BUY       0.69      0.89      0.77      8937
+         BUY       0.42      0.08      0.13      5403
+     NOT_BUY       0.59      0.92      0.72      7648
 
-    accuracy                           0.65     13284
-   macro avg       0.55      0.53      0.51     13284
-weighted avg       0.60      0.65      0.60     13284
+    accuracy                           0.57     13051
+   macro avg       0.50      0.50      0.42     13051
+weighted avg       0.52      0.57      0.47     13051
 
 Confusion matrix:
-[[ 732 3615]
- [1000 7937]]
+[[ 416 4987]
+ [ 577 7071]]
 
-F1 macro:    0.5078
-F1 weighted: 0.6000
+F1 macro:    0.4239
+F1 weighted: 0.4744

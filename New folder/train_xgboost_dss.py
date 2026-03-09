@@ -126,7 +126,7 @@ def calculate_rsi_14(series: pd.Series) -> pd.Series:
 
 def add_technical_indicators(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Add MA and RSI technical indicators from sell_price.
+    Add MA, RSI, MACD, Bollinger Band, ATR and volatility indicators.
     """
     grouped_sell = df.groupby("gold_code", dropna=False)["sell_price"]
 
@@ -136,7 +136,41 @@ def add_technical_indicators(df: pd.DataFrame) -> pd.DataFrame:
     df["price_to_MA20_pct"] = safe_ratio(df["sell_price"] - df["MA20"], df["MA20"]) * 100.0
     df["RSI_14"] = grouped_sell.transform(calculate_rsi_14)
 
-    # Keep only rows where long-window indicators are defined.
+    # MACD (12, 26, 9)
+    ema12 = grouped_sell.transform(lambda s: s.ewm(span=12, min_periods=12).mean())
+    ema26 = grouped_sell.transform(lambda s: s.ewm(span=26, min_periods=26).mean())
+    macd_line = ema12 - ema26
+    signal_line = macd_line.groupby(df["gold_code"]).transform(
+        lambda s: s.ewm(span=9, min_periods=9).mean()
+    )
+    df["macd_histogram"] = safe_ratio(macd_line - signal_line, df["sell_price"]) * 100.0
+
+    # Bollinger Band Width % (20-day, 2 std)
+    bb_std = grouped_sell.transform(lambda s: s.rolling(window=20, min_periods=20).std())
+    df["bb_width_pct"] = safe_ratio(4.0 * bb_std, df["MA20"]) * 100.0
+    df["bb_position"] = safe_ratio(
+        df["sell_price"] - (df["MA20"] - 2.0 * bb_std),
+        4.0 * bb_std,
+    )
+
+    # ATR_14 as % of price (scale-invariant)
+    grouped_df = df.groupby("gold_code", dropna=False)
+    high_low = grouped_df["sell_price"].transform(
+        lambda s: s.rolling(2).max() - s.rolling(2).min()
+    )
+    df["atr_14_pct"] = safe_ratio(
+        high_low.groupby(df["gold_code"]).transform(
+            lambda s: s.rolling(window=14, min_periods=14).mean()
+        ),
+        df["sell_price"],
+    ) * 100.0
+
+    # Volatility: rolling 10-day std of daily returns
+    daily_ret = grouped_sell.pct_change()
+    df["volatility_10d"] = daily_ret.groupby(df["gold_code"]).transform(
+        lambda s: s.rolling(window=10, min_periods=10).std()
+    ) * 100.0
+
     df = df.dropna(subset=["MA20", "RSI_14"]).reset_index(drop=True)
     return df
 
@@ -155,15 +189,28 @@ def add_lag_features(df: pd.DataFrame) -> pd.DataFrame:
     # Cumulative price returns at multiple horizons
     df["cum_return_3d_pct"] = grouped["sell_price"].pct_change(3) * 100.0
     df["cum_return_7d_pct"] = grouped["sell_price"].pct_change(7) * 100.0
+    df["cum_return_14d_pct"] = grouped["sell_price"].pct_change(14) * 100.0
 
-    # RSI momentum (change in RSI over 3 days detects divergence)
+    # RSI momentum (divergence detection at 3d and 7d)
     df["rsi_change_3d"] = grouped["RSI_14"].transform(lambda s: s.diff(3))
+    df["rsi_change_7d"] = grouped["RSI_14"].transform(lambda s: s.diff(7))
 
     # World gold trend (5-day % change)
     df["world_chg_5d_pct"] = grouped["world_price_vnd"].pct_change(5) * 100.0
 
     # DXY trend (5-day % change; USD strength signal)
     df["dxy_chg_5d_pct"] = grouped["dxy_index"].pct_change(5) * 100.0
+
+    # Domestic premium trend (VN market sentiment)
+    if "domestic_premium" in df.columns:
+        df["premium_chg_5d"] = grouped["domestic_premium"].pct_change(5) * 100.0
+    elif "premium_pct" in df.columns:
+        df["premium_chg_5d"] = grouped["premium_pct"].transform(lambda s: s.diff(5))
+    else:
+        df["premium_chg_5d"] = np.nan
+
+    # Fed rate trend (monetary policy signal)
+    df["fed_rate_chg_5d"] = grouped["fed_rate"].transform(lambda s: s.diff(5))
 
     return df
 
@@ -351,18 +398,40 @@ def tune_and_train_xgboost(
     """
     sample_weight = compute_sample_weight(class_weight="balanced", y=y_train)
 
-    base_model = XGBClassifier(
-        objective="multi:softmax",
-        eval_metric="mlogloss",
-        num_class=num_class,
-        n_estimators=300,
-        random_state=42,
-        n_jobs=-1,
-        tree_method="hist",
-        gamma=1.0,
-        reg_alpha=1.0,
-        reg_lambda=8.0,
-    )
+    # scale_pos_weight helps the minority class (BUY) in binary mode
+    spw = 1.0
+    if num_class == 2:
+        counts = y_train.value_counts()
+        if len(counts) == 2:
+            spw = float(counts.max()) / max(float(counts.min()), 1.0)
+            print(f"[TUNE] scale_pos_weight = {spw:.2f}")
+
+    if num_class == 2:
+        base_model = XGBClassifier(
+            objective="binary:logistic",
+            eval_metric="logloss",
+            n_estimators=500,
+            random_state=42,
+            n_jobs=-1,
+            tree_method="hist",
+            gamma=1.0,
+            reg_alpha=1.0,
+            reg_lambda=8.0,
+            scale_pos_weight=spw,
+        )
+    else:
+        base_model = XGBClassifier(
+            objective="multi:softmax",
+            eval_metric="mlogloss",
+            num_class=num_class,
+            n_estimators=500,
+            random_state=42,
+            n_jobs=-1,
+            tree_method="hist",
+            gamma=1.0,
+            reg_alpha=1.0,
+            reg_lambda=8.0,
+        )
 
     param_grid = {
         "max_depth": [2, 3, 4],
@@ -454,7 +523,7 @@ def evaluate_model(
             f.write(str(cm) + "\n\n")
             f.write(f"F1 macro:    {f1_macro:.4f}\n")
             f.write(f"F1 weighted: {f1_weighted:.4f}\n")
-        print(f"\nSaved metrics to: {metrics_path}")
+        print(f"\nSaved metrics to: {metrics_path.name}")
 
 
 def plot_feature_importance(model: XGBClassifier, feature_names: list[str], output_path: Path, top_n: int = 15) -> None:
@@ -606,17 +675,31 @@ def main() -> None:
         from sklearn.metrics import f1_score as _f1
 
         _buy_idx = list(label_encoder.classes_).index("BUY")
-        _notbuy_idx = 1 - _buy_idx  # works for 2-class only
+        _notbuy_idx = 1 - _buy_idx
         _prob_buy = model.predict_proba(X_test)[:, _buy_idx]
         _y_true_labels = label_encoder.inverse_transform(y_test.values)
+
+        # Wider search range (0.10-0.55) with finer steps, optimizing BUY F1
         _best_thr, _best_f1 = 0.35, 0.0
-        for _thr in np.arange(0.20, 0.56, 0.05):
+        print("\nThreshold search (optimizing BUY F1):")
+        for _thr in np.arange(0.10, 0.56, 0.02):
             _enc_preds = np.where(_prob_buy >= _thr, _buy_idx, _notbuy_idx)
             _preds = label_encoder.inverse_transform(_enc_preds)
-            _f = _f1(_y_true_labels, _preds, average="macro")
-            if _f > _best_f1:
-                _best_f1, _best_thr = _f, float(round(_thr, 2))
-        print(f"\nOptimal BUY threshold (F1-macro): {_best_thr:.2f}  (F1={_best_f1:.4f})")
+            _f_buy = _f1(_y_true_labels, _preds, pos_label="BUY", average="binary")
+            _f_macro = _f1(_y_true_labels, _preds, average="macro")
+            _combined = 0.6 * _f_buy + 0.4 * _f_macro
+            if _combined > _best_f1:
+                _best_f1, _best_thr = _combined, float(round(_thr, 2))
+        print(f"  Best threshold: {_best_thr:.2f}  (combined_score={_best_f1:.4f})")
+
+        # Show metrics at optimal threshold
+        _enc_preds = np.where(_prob_buy >= _best_thr, _buy_idx, _notbuy_idx)
+        _preds = label_encoder.inverse_transform(_enc_preds)
+        _buy_f1 = _f1(_y_true_labels, _preds, pos_label="BUY", average="binary")
+        _macro_f1 = _f1(_y_true_labels, _preds, average="macro")
+        from sklearn.metrics import recall_score as _recall
+        _buy_recall = _recall(_y_true_labels, _preds, pos_label="BUY", average="binary")
+        print(f"  At threshold {_best_thr}: BUY_F1={_buy_f1:.4f}, BUY_recall={_buy_recall:.4f}, F1_macro={_macro_f1:.4f}")
         optimal_threshold = _best_thr
 
     joblib.dump(model, model_path)
@@ -638,12 +721,12 @@ def main() -> None:
     with open(config_path, "w", encoding="utf-8") as _f:
         _json.dump(model_config, _f, indent=2)
 
-    print(f"\nSaved outputs folder: {output_dir}")
-    print(f"Saved scaler to:          {scaler_path}")
-    print(f"Saved model to:           {model_path}")
-    print(f"Saved label encoder to:   {le_path}")
-    print(f"Saved model config to:    {config_path}")
-    print(f"Saved feature importance: {importance_plot_path}")
+    print(f"\nSaved outputs folder: {output_dir.name}")
+    print(f"Saved scaler to:          {scaler_path.name}")
+    print(f"Saved model to:           {model_path.name}")
+    print(f"Saved label encoder to:   {le_path.name}")
+    print(f"Saved model config to:    {config_path.name}")
+    print(f"Saved feature importance: {importance_plot_path.name}")
 
 
 if __name__ == "__main__":

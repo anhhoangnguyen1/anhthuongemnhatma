@@ -7,11 +7,15 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-# Thêm New folder để import train_xgboost_dss
+# Thêm New folder để import train_xgboost_dss, root để import news/sentiment
 ROOT = Path(__file__).resolve().parent.parent
 NEW_FOLDER = ROOT / "New folder"
 if str(NEW_FOLDER) not in sys.path:
     sys.path.insert(0, str(NEW_FOLDER))
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+import time as _time
 
 import joblib
 import numpy as np
@@ -355,6 +359,50 @@ def api_predict():
         return jsonify({"error": f"File not found: {e}"}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+_news_cache = None
+_news_cache_ts = 0.0
+_NEWS_CACHE_TTL = 1800
+
+
+@app.route("/api/news")
+def api_news():
+    """Return gold-related news with sentiment analysis, cached for 30 min."""
+    global _news_cache, _news_cache_ts
+
+    source_filter = request.args.get("source", "").strip().lower()
+
+    if _news_cache is not None and (_time.time() - _news_cache_ts) < _NEWS_CACHE_TTL:
+        articles = _news_cache
+    else:
+        try:
+            from news_scraper import fetch_all_gold_news
+            from sentiment_analyzer import analyze_articles
+            raw = fetch_all_gold_news(max_per_source=15)
+            articles = [r.to_dict() for r in analyze_articles(raw)]
+            _news_cache = articles
+            _news_cache_ts = _time.time()
+        except Exception as e:
+            return jsonify({"error": str(e), "articles": []}), 500
+
+    if source_filter and source_filter != "all":
+        filtered = [a for a in articles if a["source"].lower() == source_filter]
+    else:
+        filtered = articles
+
+    scores = [a["sentiment_score"] for a in filtered if a.get("sentiment_score") is not None]
+    overall = round(sum(scores) / len(scores), 3) if scores else 0.0
+    pos = sum(1 for s in scores if s > 0.15)
+    neg = sum(1 for s in scores if s < -0.15)
+    neu = len(scores) - pos - neg
+
+    return jsonify({
+        "articles": filtered[:20],
+        "overall_sentiment": overall,
+        "summary": {"positive": pos, "negative": neg, "neutral": neu, "total": len(filtered)},
+        "sources": sorted(set(a["source"] for a in articles)),
+    })
 
 
 if __name__ == "__main__":
