@@ -14,6 +14,7 @@ if str(NEW_FOLDER) not in sys.path:
     sys.path.insert(0, str(NEW_FOLDER))
 
 import joblib
+import numpy as np
 import pandas as pd
 from flask import Flask, jsonify, render_template, request
 from sklearn.preprocessing import LabelEncoder
@@ -24,7 +25,32 @@ app = Flask(__name__, template_folder=Path(__file__).resolve().parent / "templat
 MODEL_DIR = NEW_FOLDER / "output"
 MODEL_PATH = MODEL_DIR / "xgboost_dss_model.pkl"
 SCALER_PATH = MODEL_DIR / "scaler_xgboost_dss.pkl"
-LABELS = ["BUY", "HOLD", "SELL"]
+LABEL_ENCODER_PATH = MODEL_DIR / "label_encoder_dss.pkl"
+MODEL_CONFIG_PATH = MODEL_DIR / "model_config.json"
+_DEFAULT_LABELS = ["BUY", "HOLD", "SELL"]
+
+
+def _load_model_config() -> dict:
+    """Load model_config.json saved at training time. Returns empty dict if missing."""
+    try:
+        if MODEL_CONFIG_PATH.exists():
+            import json as _json
+            with open(MODEL_CONFIG_PATH, encoding="utf-8") as f:
+                return _json.load(f)
+    except Exception:
+        pass
+    return {}
+
+
+def _get_labels() -> list[str]:
+    """Load labels từ label_encoder đã lưu, fallback về 3-class mặc định."""
+    try:
+        if LABEL_ENCODER_PATH.exists():
+            le = joblib.load(LABEL_ENCODER_PATH)
+            return [str(c) for c in le.classes_]
+    except Exception:
+        pass
+    return list(_DEFAULT_LABELS)
 MAX_POINTS = 90  # Số điểm trả về cho chart (90 ngày gần nhất)
 
 # Master CSV: ưu tiên file có nhiều ngày (thư mục gốc thường có từ tháng 1) để chart đủ 90 ngày
@@ -113,6 +139,16 @@ def _run_pipeline_and_predict(gold_code: str | None = None):
         load_and_resample_daily,
     )
 
+    LABELS = _get_labels()
+    cfg = _load_model_config()
+    binary_mode = cfg.get("binary", LABELS == ["BUY", "NOT_BUY"])
+    buy_pct = cfg.get("buy_pct", None)
+    hold_band = cfg.get("hold_band_ratio", 0.15)
+    buy_ratio = cfg.get("buy_ratio", 1.0)
+    sell_ratio = cfg.get("sell_ratio", 0.3)
+    optimal_threshold = cfg.get("optimal_threshold", 0.5)
+    horizon = int(cfg.get("horizon", 3))
+
     df = load_and_resample_daily(_get_master_path())
     # Nếu chọn 1 mã vàng: lọc để mỗi ngày = 1 dòng = 1 lần dự đoán
     if gold_code and gold_code.strip():
@@ -133,8 +169,16 @@ def _run_pipeline_and_predict(gold_code: str | None = None):
 
     le = LabelEncoder()
     le.fit(LABELS)
-    # hold_band_ratio=0.15 khớp với model đã train (--hold-band 0.15)
-    df_with_target, _ = add_t3_target(df.copy(), hold_band_ratio=0.15)
+    # Dùng đúng labeling config đã train
+    df_with_target, _ = add_t3_target(
+        df.copy(),
+        hold_band_ratio=hold_band,
+        buy_ratio=buy_ratio,
+        sell_ratio=sell_ratio,
+        buy_pct=buy_pct,
+        binary=binary_mode,
+        horizon=horizon,
+    )
     df_with_target = engineer_features(df_with_target)
     if df_with_target.empty:
         return None
@@ -147,33 +191,43 @@ def _run_pipeline_and_predict(gold_code: str | None = None):
     preprocessor = joblib.load(SCALER_PATH)
 
     def _predict_block(df_block: pd.DataFrame) -> pd.Series:
-        """Reindex → scale (column-safe) → predict."""
+        """Reindex → scale (column-safe) → predict with optimal threshold."""
         X = df_block.drop(columns=[target_col], errors="ignore").copy()
         X = X.drop(columns=["timestamp"], errors="ignore")
-        # Reindex to model's training columns first
         if hasattr(model, "feature_names_in_"):
             X = X.reindex(columns=model.feature_names_in_, fill_value=0)
-        # transform_df handles missing/extra columns using saved scale_columns_
         if hasattr(preprocessor, "transform_df"):
             X = preprocessor.transform_df(X)
-        return pd.Series(model.predict(X), index=df_block.index)
+        # Use optimal threshold for binary BUY/NOT_BUY
+        if binary_mode and hasattr(model, "predict_proba"):
+            proba = model.predict_proba(X)
+            classes = list(model.classes_)
+            buy_col = classes.index(
+                list(LABELS).index("BUY") if "BUY" in LABELS else 0
+            )
+            prob_buy = proba[:, buy_col]
+            thr = optimal_threshold if optimal_threshold != 0.5 else 0.5
+            pred_encoded = np.where(prob_buy >= thr, classes[buy_col], classes[1 - buy_col])
+            return pd.Series(pred_encoded, index=df_block.index), pd.Series(prob_buy, index=df_block.index)
+        preds = pd.Series(model.predict(X), index=df_block.index)
+        return preds, pd.Series(np.nan, index=df_block.index)
 
-    df_with_target["prediction"] = _predict_block(df_with_target)
+    df_with_target["prediction"], df_with_target["prob_buy"] = _predict_block(df_with_target)
 
     # Inference cho 3 ngày cuối (không cần data 3 ngày sau):
     # df đã có lag features từ add_lag_features trên toàn bộ dataset
     last_dates = sorted(df["timestamp"].dropna().unique())[-3:]
     df_last = df[df["timestamp"].isin(last_dates)].copy()
     if not df_last.empty:
-        df_last["future_sell_price_3d"] = df_last["sell_price"].values
+        df_last["future_sell_price_3d"] = df_last["sell_price"].values  # placeholder
         df_last["expected_profit"] = 0.0
         df_last["current_spread"] = (df_last["sell_price"] - df_last["buy_price"]).values
-        df_last["target_trend"] = "HOLD"
+        df_last["target_trend"] = "NOT_BUY" if binary_mode else "HOLD"
         df_last["target_encoded"] = 1
         try:
             df_last = engineer_features(df_last)
             if not df_last.empty and target_col in df_last.columns:
-                df_last["prediction"] = _predict_block(df_last)
+                df_last["prediction"], df_last["prob_buy"] = _predict_block(df_last)
                 df_with_target = pd.concat([df_with_target, df_last], ignore_index=True)
         except Exception:
             pass
@@ -189,23 +243,38 @@ def _run_pipeline_and_predict(gold_code: str | None = None):
         pred_per_day.columns = ["date", "prediction"]
 
     # Left merge để giữ mọi ngày có giá (kể cả 3 ngày cuối chưa có dự đoán)
+    # Also aggregate prob_buy per day
+    if "prob_buy" in df.columns:
+        prob_per_day = df.groupby("timestamp")["prob_buy"].mean().reset_index()
+        prob_per_day.columns = ["date", "prob_buy"]
+        pred_per_day = pred_per_day.merge(prob_per_day, on="date", how="left")
     merge = daily_price.merge(pred_per_day, on="date", how="left")
     merge = merge.sort_values("date").tail(MAX_POINTS)
     merge["prediction_label"] = merge["prediction"].apply(
         lambda i: LABELS[int(i)] if pd.notna(i) else None
     )
+    merge["prob_buy_label"] = merge.get("prob_buy", None)
 
     # Dự đoán mới nhất = dòng cuối có prediction (3 ngày cuối không có do shift(-3))
     last_with_pred = merge[merge["prediction"].notna()]
     latest_pred = last_with_pred["prediction_label"].iloc[-1] if len(last_with_pred) else None
     latest_pred_date = last_with_pred["date"].iloc[-1] if len(last_with_pred) else None
 
+    def _safe_prob(val):
+        try:
+            v = float(val)
+            return round(v, 3) if not np.isnan(v) else None
+        except Exception:
+            return None
+
     return {
         "gold_code": gold_code.strip() if gold_code and gold_code.strip() else None,
         "gold_codes": _get_gold_codes(),
+        "labels": LABELS,
         "dates": merge["date"].astype(str).tolist(),
         "prices": merge["price"].round(0).tolist(),
         "predictions": [p if p is not None else "N/A" for p in merge["prediction_label"]],
+        "probabilities": [_safe_prob(p) for p in merge.get("prob_buy_label", [None]*len(merge))],
         "latest": {
             "date": str(merge["date"].iloc[-1]),
             "price": float(merge["price"].iloc[-1]),

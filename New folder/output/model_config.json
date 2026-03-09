@@ -1,0 +1,14 @@
+{
+  "binary": true,
+  "buy_pct": 0.3,
+  "hold_band_ratio": null,
+  "buy_ratio": 1.0,
+  "sell_ratio": 0.3,
+  "label_classes": [
+    "BUY",
+    "NOT_BUY"
+  ],
+  "optimal_threshold": 0.3,
+  "recent_years": null,
+  "horizon": 3
+}

@@ -20,10 +20,19 @@ from preprocessing import PreprocessorPipeline, WinsorizerTransformer  # noqa: F
 INPUT_FILE = "master_dss_dataset.csv"
 SCALER_FILE = "scaler_xgboost_dss.pkl"
 MODEL_FILE = "xgboost_dss_model.pkl"
+LABEL_ENCODER_FILE = "label_encoder_dss.pkl"
+MODEL_CONFIG_FILE = "model_config.json"
 FEATURE_IMPORTANCE_FIGURE = "xgboost_feature_importance.png"
 METRICS_FILE = "evaluation_metrics.txt"
 OUTPUT_DIR_NAME = "output"
 TRAIN_SPLIT_RATIO = 0.80
+
+# Columns that need renaming when the file comes from the full pipeline
+# (capital PascalCase) vs the 1-year pipeline (lowercase snake_case).
+_COLUMN_RENAME = {
+    "World_Price_VND": "world_price_vnd",
+    "Domestic_Premium": "domestic_premium",
+}
 
 
 def load_and_resample_daily(csv_path: Path) -> pd.DataFrame:
@@ -35,6 +44,8 @@ def load_and_resample_daily(csv_path: Path) -> pd.DataFrame:
     - Forward-fills missing days per gold_code to preserve continuity.
     """
     df = pd.read_csv(csv_path, parse_dates=["timestamp"])
+    # Normalise column names: support both PascalCase (full pipeline) and snake_case (1-year pipeline)
+    df = df.rename(columns={k: v for k, v in _COLUMN_RENAME.items() if k in df.columns})
     df = df.sort_values(["gold_code", "timestamp"], kind="mergesort").reset_index(drop=True)
 
     if "price_change_pct" in df.columns:
@@ -163,21 +174,37 @@ def add_t3_target(
     hold_band_ratio: float | None = None,
     buy_ratio: float = 1.0,
     sell_ratio: float = 0.3,
+    buy_pct: float | None = None,
+    binary: bool = False,
+    horizon: int = 3,
 ) -> tuple[pd.DataFrame, LabelEncoder]:
     """
-    Build BUY/SELL/HOLD labels using a 3-day holding horizon and current spread.
+    Build BUY/SELL/HOLD (3-class) or BUY/NOT_BUY (binary) labels.
 
-    - If hold_band_ratio is set (e.g. 0.2): HOLD when |expected_profit| <= R*spread,
-      BUY when expected_profit > R*spread, SELL when expected_profit < -R*spread.
-    - If hold_band_ratio is None: BUY when expected_profit > buy_ratio*spread,
-      SELL when expected_profit < -sell_ratio*spread, HOLD otherwise.
+    Binary mode priority (highest to lowest):
+      1. --buy-pct P  : BUY when N-day % return > P  (scale-invariant, recommended)
+      2. --hold-band R: BUY when profit > R * spread  (spread-based)
+      3. default      : BUY when profit > buy_ratio * spread
+
+    horizon: number of days ahead to look for the exit price (default=3, try 7-15).
     """
     grouped = df.groupby("gold_code", dropna=False)
-    df["future_sell_price_3d"] = grouped["sell_price"].shift(-3)
+    df["future_sell_price_3d"] = grouped["sell_price"].shift(-horizon)
     df["expected_profit"] = df["future_sell_price_3d"] - df["sell_price"]
+    # NOTE: pct_return_3d is a TEMPORARY column used only for labeling — dropped below
+    df["_pct_return_3d_tmp"] = df["expected_profit"] / df["sell_price"] * 100
     df["current_spread"] = df["sell_price"] - df["buy_price"]
 
-    if hold_band_ratio is not None:
+    if binary:
+        if buy_pct is not None:
+            # Scale-invariant % return threshold (recommended for long price histories)
+            buy_mask = df["_pct_return_3d_tmp"] > buy_pct
+        else:
+            R = hold_band_ratio if hold_band_ratio is not None else buy_ratio
+            buy_mask = df["expected_profit"] > R * df["current_spread"]
+        df["target_trend"] = np.where(buy_mask, "BUY", "NOT_BUY")
+        classes = ["BUY", "NOT_BUY"]
+    elif hold_band_ratio is not None:
         R = hold_band_ratio
         df["target_trend"] = np.select(
             [
@@ -187,6 +214,7 @@ def add_t3_target(
             ["BUY", "SELL"],
             default="HOLD",
         )
+        classes = ["BUY", "HOLD", "SELL"]
     else:
         df["target_trend"] = np.select(
             [
@@ -196,11 +224,16 @@ def add_t3_target(
             ["BUY", "SELL"],
             default="HOLD",
         )
+        classes = ["BUY", "HOLD", "SELL"]
 
     df = df.dropna(subset=["future_sell_price_3d"]).reset_index(drop=True)
 
+    # Drop all future-leaking temporary columns before returning
+    df = df.drop(columns=["future_sell_price_3d", "expected_profit",
+                           "_pct_return_3d_tmp", "current_spread"], errors="ignore")
+
     label_encoder = LabelEncoder()
-    label_encoder.fit(["BUY", "HOLD", "SELL"])
+    label_encoder.fit(classes)
     df["target_encoded"] = label_encoder.transform(df["target_trend"])
     return df, label_encoder
 
@@ -463,6 +496,43 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--buy-ratio", type=float, default=1.0, help="BUY when profit > buy_ratio*spread (if no --hold-band).")
     parser.add_argument("--sell-ratio", type=float, default=0.3, help="SELL when profit < -sell_ratio*spread (if no --hold-band).")
+    parser.add_argument(
+        "--binary",
+        action="store_true",
+        default=False,
+        help="Binary mode: labels are BUY / NOT_BUY only (merges HOLD+SELL into NOT_BUY).",
+    )
+    parser.add_argument(
+        "--buy-pct",
+        type=float,
+        default=None,
+        metavar="P",
+        help=(
+            "Binary BUY when 3-day %% return > P (e.g. 0.3 means >0.3%% in 3 days). "
+            "Scale-invariant; recommended for long price histories. Implies --binary."
+        ),
+    )
+    parser.add_argument(
+        "--horizon",
+        type=int,
+        default=3,
+        metavar="N",
+        help=(
+            "Number of trading days ahead for the BUY target exit price (default=3). "
+            "Larger values (7-15) capture medium-term trends and are more predictable."
+        ),
+    )
+    parser.add_argument(
+        "--recent-years",
+        type=float,
+        default=None,
+        metavar="N",
+        help=(
+            "Only use the most recent N years of data for training. "
+            "E.g. 3 = use data from (today-3yr) onwards. "
+            "Helps model focus on the current market regime."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -475,10 +545,33 @@ def main() -> None:
     input_path = args.input_file if args.input_file is not None else base_dir / INPUT_FILE
     scaler_path = output_dir / SCALER_FILE
     model_path = output_dir / MODEL_FILE
+    le_path = output_dir / LABEL_ENCODER_FILE
+    config_path = output_dir / MODEL_CONFIG_FILE
     importance_plot_path = output_dir / FEATURE_IMPORTANCE_FIGURE
     metrics_path = output_dir / METRICS_FILE
 
+    # --buy-pct implies --binary
+    if args.buy_pct is not None:
+        args.binary = True
+
+    mode_str = "BINARY (BUY / NOT_BUY)" if args.binary else "3-CLASS (BUY / HOLD / SELL)"
+    print(f"\n[MODE] Label mode: {mode_str}")
+    print(f"[MODE] horizon  = {args.horizon} days")
+    if args.buy_pct is not None:
+        print(f"[MODE] buy_pct = {args.buy_pct}%  (BUY when {args.horizon}-day return > {args.buy_pct}%)")
+    elif args.hold_band is not None:
+        print(f"[MODE] hold_band_ratio = {args.hold_band}  (BUY when profit > {args.hold_band}×spread)")
+
     df = load_and_resample_daily(input_path)
+
+    # Optionally restrict to recent N years
+    if args.recent_years is not None:
+        cutoff = pd.Timestamp.now() - pd.DateOffset(years=args.recent_years)
+        before = len(df)
+        df = df[df["timestamp"] >= cutoff].copy().reset_index(drop=True)
+        print(f"[DATA] --recent-years {args.recent_years}: kept {len(df)}/{before} rows "
+              f"(from {df['timestamp'].min().date()} onwards)")
+
     df = add_technical_indicators(df)
     df = add_lag_features(df)
     df, label_encoder = add_t3_target(
@@ -486,6 +579,9 @@ def main() -> None:
         hold_band_ratio=args.hold_band,
         buy_ratio=args.buy_ratio,
         sell_ratio=args.sell_ratio,
+        buy_pct=args.buy_pct,
+        binary=args.binary,
+        horizon=args.horizon,
     )
     df = engineer_features(df)
 
@@ -504,11 +600,50 @@ def main() -> None:
     evaluate_model(model, X_test, y_test, label_encoder, metrics_path=metrics_path)
     plot_feature_importance(model, feature_names=X_train.columns.tolist(), output_path=importance_plot_path, top_n=15)
 
+    # --- Find optimal decision threshold using test set (only for binary) ---
+    optimal_threshold = 0.5
+    if args.binary and hasattr(model, "predict_proba") and "BUY" in list(label_encoder.classes_):
+        from sklearn.metrics import f1_score as _f1
+
+        _buy_idx = list(label_encoder.classes_).index("BUY")
+        _notbuy_idx = 1 - _buy_idx  # works for 2-class only
+        _prob_buy = model.predict_proba(X_test)[:, _buy_idx]
+        _y_true_labels = label_encoder.inverse_transform(y_test.values)
+        _best_thr, _best_f1 = 0.35, 0.0
+        for _thr in np.arange(0.20, 0.56, 0.05):
+            _enc_preds = np.where(_prob_buy >= _thr, _buy_idx, _notbuy_idx)
+            _preds = label_encoder.inverse_transform(_enc_preds)
+            _f = _f1(_y_true_labels, _preds, average="macro")
+            if _f > _best_f1:
+                _best_f1, _best_thr = _f, float(round(_thr, 2))
+        print(f"\nOptimal BUY threshold (F1-macro): {_best_thr:.2f}  (F1={_best_f1:.4f})")
+        optimal_threshold = _best_thr
+
     joblib.dump(model, model_path)
+    joblib.dump(label_encoder, le_path)
+
+    # Save labeling config so the inference layer can reproduce labels identically
+    import json as _json
+    model_config = {
+        "binary": args.binary,
+        "buy_pct": args.buy_pct,
+        "hold_band_ratio": args.hold_band,
+        "buy_ratio": args.buy_ratio,
+        "sell_ratio": args.sell_ratio,
+        "label_classes": [str(c) for c in label_encoder.classes_],
+        "optimal_threshold": optimal_threshold,
+        "recent_years": args.recent_years,
+        "horizon": args.horizon,
+    }
+    with open(config_path, "w", encoding="utf-8") as _f:
+        _json.dump(model_config, _f, indent=2)
+
     print(f"\nSaved outputs folder: {output_dir}")
-    print(f"Saved scaler to: {scaler_path}")
-    print(f"Saved model to: {model_path}")
-    print(f"Saved feature importance plot to: {importance_plot_path}")
+    print(f"Saved scaler to:          {scaler_path}")
+    print(f"Saved model to:           {model_path}")
+    print(f"Saved label encoder to:   {le_path}")
+    print(f"Saved model config to:    {config_path}")
+    print(f"Saved feature importance: {importance_plot_path}")
 
 
 if __name__ == "__main__":

@@ -46,10 +46,11 @@
       padding: 0.75rem 1.5rem;
       border-radius: 10px;
     }
-    .prediction-badge.buy { background: #166534; color: #bbf7d0; }
-    .prediction-badge.hold { background: #854d0e; color: #fef08a; }
-    .prediction-badge.sell { background: #991b1b; color: #fecaca; }
-    .prediction-badge.na { background: #475569; color: #94a3b8; }
+    .prediction-badge.buy     { background: #166534; color: #bbf7d0; }
+    .prediction-badge.hold    { background: #854d0e; color: #fef08a; }
+    .prediction-badge.sell    { background: #991b1b; color: #fecaca; }
+    .prediction-badge.not_buy { background: #1e3a5f; color: #93c5fd; }
+    .prediction-badge.na      { background: #475569; color: #94a3b8; }
     .latest-meta {
       color: #94a3b8;
       font-size: 0.9rem;
@@ -148,12 +149,23 @@
   <script>
     const ctx = document.getElementById('chart').getContext('2d');
     let chart = null;
+    let _labels = ['BUY', 'HOLD', 'SELL'];  // updated when API responds
+
+    function predClass(pred) {
+      if (!pred || pred === 'N/A') return 'na';
+      return pred.toLowerCase().replace(/[^a-z]/g, '_');
+    }
+
+    function predColor(pred) {
+      const map = { BUY: '#22c55e', SELL: '#ef4444', HOLD: '#eab308', NOT_BUY: '#60a5fa' };
+      return map[pred] || 'rgba(0,0,0,0)';
+    }
 
     function setLatest(latest, goldCode) {
       const el = document.getElementById('latest-prediction');
       const pred = latest.prediction || 'N/A';
       el.textContent = pred;
-      el.className = 'prediction-badge ' + (pred === 'N/A' ? 'na' : pred.toLowerCase());
+      el.className = 'prediction-badge ' + predClass(pred);
       document.getElementById('latest-date').textContent = latest.date ? 'Ngày: ' + latest.date.slice(0, 10) : '';
       document.getElementById('latest-price').textContent = latest.price != null ? Number(latest.price).toLocaleString('vi-VN') + ' VND' : '';
       document.getElementById('latest-pred-date').textContent = latest.prediction_date ? '(ngày ' + latest.prediction_date.slice(0, 10) + ')' : '';
@@ -181,7 +193,16 @@
       const labels = (data.dates || []).map(d => d.slice(0, 10));
       const prices = data.prices || [];
       const preds = data.predictions || [];
-      const colors = preds.map(p => p === 'BUY' ? '#22c55e' : p === 'SELL' ? '#ef4444' : p === 'HOLD' ? '#eab308' : 'rgba(0,0,0,0)');
+      const probs   = data.probabilities || [];
+      const colors = preds.map((p, i) => {
+        if (p === 'N/A' || p == null) return 'rgba(0,0,0,0)';
+        const prob = (probs[i] != null) ? probs[i] : (p === 'BUY' ? 0.7 : 0.3);
+        if (p === 'BUY')     return `rgba(34,197,94,${Math.max(0.3, prob).toFixed(2)})`;
+        if (p === 'NOT_BUY') return `rgba(96,165,250,${Math.max(0.3, 1-prob).toFixed(2)})`;
+        if (p === 'SELL')    return 'rgba(239,68,68,0.85)';
+        if (p === 'HOLD')    return 'rgba(234,179,8,0.85)';
+        return 'rgba(0,0,0,0)';
+      });
 
       if (chart) chart.destroy();
       chart = new Chart(ctx, {
@@ -220,7 +241,12 @@
               callbacks: {
                 afterLabel: function(ctx) {
                   const p = preds[ctx.dataIndex];
-                  return 'Dự đoán: ' + (p && p !== 'N/A' ? p : 'chưa có (cần dữ liệu 3 ngày sau)');
+                  const prob = probs[ctx.dataIndex];
+                  let label = 'Dự đoán: ' + (p && p !== 'N/A' ? p : 'chưa có (cần dữ liệu 3 ngày sau)');
+                  if (prob != null && p && p !== 'N/A') {
+                    label += '  (xác suất BUY: ' + Math.round(prob * 100) + '%)';
+                  }
+                  return label;
                 },
                 label: function(ctx) {
                   const v = ctx.raw;
@@ -254,6 +280,9 @@
         }
         if (Array.isArray(data.gold_codes) && data.gold_codes.length > 0) {
           fillGoldCodeOptions(data.gold_codes);
+        }
+        if (Array.isArray(data.labels) && data.labels.length > 0) {
+          _labels = data.labels;
         }
         setLatest(data.latest || {}, data.gold_code || null);
         drawChart(data);
