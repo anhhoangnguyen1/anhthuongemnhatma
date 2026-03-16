@@ -23,6 +23,10 @@ DEFAULT_INPUT_FILES = {
     "dxy_primary": "dxy_history.csv",
     "dxy_alternative": "dxy_index_rate_one_year.csv",
     "fed": "fed_rate_live.csv",
+    # Optional: daily news sentiment (from fetch_news_sentiment_marketaux.py)
+    "news": "NEWS_SENTIMENT.csv",
+    # Optional: daily news impact from LLM (from assess_news_impact_llm.py) — 1 cột mạnh thay vì nhồi tin thô
+    "news_impact": "NEWS_IMPACT_DAILY.csv",
 }
 
 DEFAULT_OUTPUT_FILE = "master_dss_dataset.csv"
@@ -365,9 +369,18 @@ def resolve_input_paths(input_dir: Path) -> dict[str, Path]:
             f"DXY file not found. Expected one of: {dxy_primary.name}, {dxy_alternative.name}"
         )
 
-    missing_paths = [str(path) for key, path in paths.items() if key != "dxy" and not path.exists()]
+    missing_paths = [str(path) for key, path in paths.items() if key not in ("dxy",) and not path.exists()]
     if missing_paths:
         raise FileNotFoundError(f"Missing required input file(s): {missing_paths}")
+
+    # Optional news sentiment file
+    news_path = input_dir / DEFAULT_INPUT_FILES["news"]
+    if news_path.exists():
+        paths["news"] = news_path
+    # Optional news impact (LLM-assessed)
+    impact_path = input_dir / DEFAULT_INPUT_FILES["news_impact"]
+    if impact_path.exists():
+        paths["news_impact"] = impact_path
 
     return paths
 
@@ -481,6 +494,54 @@ def build_master_dataset(input_dir: Path, local_timezone: str = LOCAL_TIMEZONE) 
         "interest_rate_spread",
     ]
     df_domestic = fill_macro_columns_no_na(df_domestic, macro_columns=macro_columns)
+
+    # Optional: merge daily news sentiment (if NEWS_SENTIMENT.csv exists)
+    news_path = paths.get("news")
+    if news_path is not None and news_path.exists():
+        logging.info("Merging news sentiment from %s", news_path.name)
+        df_news_raw = read_csv_with_fallback_encodings(news_path).copy()
+
+        date_col = resolve_column(df_news_raw, ("timestamp", "date"))
+        if date_col is None:
+            raise KeyError("[NEWS] Missing required date/timestamp column.")
+
+        df_news_raw["timestamp"] = parse_datetime_series(df_news_raw[date_col], local_timezone=local_timezone)
+        df_news_raw = df_news_raw.dropna(subset=["timestamp"]).copy()
+
+        # Normalize expected column names
+        news_aliases = {
+            "gold_sentiment": ("gold_sentiment", "sentiment", "avg_sentiment"),
+            "gold_news_count": ("gold_news_count", "news_count", "article_count"),
+        }
+        df_news_raw = rename_by_aliases(
+            df_news_raw,
+            alias_map=news_aliases,
+            required_targets=("gold_sentiment", "gold_news_count"),
+            table_name="NEWS_SENTIMENT",
+        )
+
+        df_news = df_news_raw[["timestamp", "gold_sentiment", "gold_news_count"]].copy()
+        df_domestic = merge_latest_asof(
+            df_domestic,
+            df_news,
+            right_value_columns=("gold_sentiment", "gold_news_count"),
+        )
+
+    # Optional: merge daily news impact from LLM (NEWS_IMPACT_DAILY.csv) — 1 cột news_impact
+    impact_path = paths.get("news_impact")
+    if impact_path is not None and impact_path.exists():
+        logging.info("Merging news impact from %s", impact_path.name)
+        df_imp_raw = read_csv_with_fallback_encodings(impact_path).copy()
+        date_col = resolve_column(df_imp_raw, ("timestamp", "date"))
+        if date_col is not None and "news_impact" in df_imp_raw.columns:
+            df_imp_raw["timestamp"] = parse_datetime_series(df_imp_raw[date_col], local_timezone=local_timezone)
+            df_imp_raw = df_imp_raw.dropna(subset=["timestamp", "news_impact"]).copy()
+            df_imp = df_imp_raw[["timestamp", "news_impact"]].copy()
+            df_domestic = merge_latest_asof(
+                df_domestic,
+                df_imp,
+                right_value_columns=("news_impact",),
+            )
 
     # Step 3: robust world-price mapping and premium recalculation.
     df_world = build_world_price_series(df_world_raw=df_world_raw)
