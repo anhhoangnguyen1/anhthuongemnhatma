@@ -1,11 +1,25 @@
 """
 Backend Flask: load model XGBoost, chạy pipeline trên master, trả API cho frontend visualize.
 Chạy từ thư mục gốc: python frontend/app.py (hoặc cd frontend && python app.py)
+
+Env (cho LLM đánh giá tin): đọc từ .env hoặc biến môi trường hệ thống.
+Xem .env.example và thiết lập OPENAI_API_KEY, GNEWS_API_KEY.
 """
 from __future__ import annotations
 
 import sys
 from pathlib import Path
+
+# Load .env nếu có (để OPENAI_API_KEY, GNEWS_API_KEY có sẵn cho llm_adjust)
+try:
+    from dotenv import load_dotenv
+    _env_path = Path(__file__).resolve().parent.parent / ".env"
+    if _env_path.exists():
+        load_dotenv(_env_path)
+    else:
+        load_dotenv()  # thử .env ở cwd
+except ImportError:
+    pass
 
 # Thêm New folder để import train_xgboost_dss
 ROOT = Path(__file__).resolve().parent.parent
@@ -82,11 +96,10 @@ def _get_master_path() -> Path:
         return _master_path_cache
 
     model_codes = _get_model_gold_codes()
-    root_master = ROOT / "master_dss_dataset.csv"
     new_master = NEW_FOLDER / "master_dss_dataset.csv"
 
     candidates = []
-    for path in (new_master, root_master):
+    for path in (new_master,):
         if not path.exists():
             continue
         try:
@@ -100,15 +113,15 @@ def _get_master_path() -> Path:
             pass
 
     if not candidates:
-        _master_path_cache = new_master if new_master.exists() else root_master
+        _master_path_cache = new_master
         return _master_path_cache
 
     # Chọn file có overlap gold_code cao nhất; tie-break bằng số ngày
     best = max(candidates, key=lambda t: (t[0], t[1]))
     best_path, best_df = best[2], best[3]
 
-    # Nếu cần normalize (root master), cache lại file đã normalize
-    if best_path == root_master and any(c in best_df.columns for c in ("World_Price_VND", "Domestic_Premium")):
+    # Nếu master có cột tên cũ (World_Price_VND, Domestic_Premium), ghi bản đã chuẩn hóa ra cache
+    if any(c in best_df.columns for c in ("World_Price_VND", "Domestic_Premium")):
         cache_path = ROOT / ".frontend_master_cache.csv"
         best_df.to_csv(cache_path, index=False)
         best_path = cache_path
@@ -166,6 +179,17 @@ def _run_pipeline_and_predict(gold_code: str | None = None):
     # Giá theo ngày lấy TRƯỚC add_t3_target để giữ đủ ngày
     daily_price = df.groupby("timestamp")["sell_price"].mean().reset_index()
     daily_price.columns = ["date", "price"]
+
+    # Daily features cho biểu đồ (aggregate theo ngày từ df trước add_t3_target)
+    feat_cols = ["domestic_premium", "RSI_14", "cum_return_3d_pct", "cum_return_7d_pct", "sell_price", "world_price_vnd"]
+    available = [c for c in feat_cols if c in df.columns]
+    daily_feat = None
+    if available:
+        daily_feat = df.groupby("timestamp")[available].mean().reset_index()
+        daily_feat.columns = ["date"] + available
+        if "sell_price" in daily_feat.columns and "world_price_vnd" in daily_feat.columns:
+            w = daily_feat["world_price_vnd"].replace(0, np.nan)
+            daily_feat["premium_pct"] = (daily_feat["sell_price"] / w) * 100.0
 
     le = LabelEncoder()
     le.fit(LABELS)
@@ -255,10 +279,22 @@ def _run_pipeline_and_predict(gold_code: str | None = None):
     )
     merge["prob_buy_label"] = merge.get("prob_buy", None)
 
+    # Gắn feature theo ngày (cùng thứ tự với merge) cho biểu đồ phía dưới
+    feature_series = {}
+    if daily_feat is not None:
+        feat_merge = merge[["date"]].merge(daily_feat, on="date", how="left")
+        for col in ["premium_pct", "domestic_premium", "RSI_14", "cum_return_3d_pct", "cum_return_7d_pct", "world_price_vnd"]:
+            if col in feat_merge.columns:
+                feature_series[col] = [float(x) if pd.notna(x) else None for x in feat_merge[col]]
+
     # Dự đoán mới nhất = dòng cuối có prediction (3 ngày cuối không có do shift(-3))
     last_with_pred = merge[merge["prediction"].notna()]
     latest_pred = last_with_pred["prediction_label"].iloc[-1] if len(last_with_pred) else None
     latest_pred_date = last_with_pred["date"].iloc[-1] if len(last_with_pred) else None
+    # Giá tại ngày dự đoán (để LLM đánh giá cùng tin tức ngày đó)
+    latest_pred_date_price = None
+    if latest_pred_date is not None and len(merge[merge["date"] == latest_pred_date]["price"]) > 0:
+        latest_pred_date_price = float(merge[merge["date"] == latest_pred_date]["price"].iloc[0])
 
     def _safe_prob(val):
         try:
@@ -267,7 +303,7 @@ def _run_pipeline_and_predict(gold_code: str | None = None):
         except Exception:
             return None
 
-    return {
+    out = {
         "gold_code": gold_code.strip() if gold_code and gold_code.strip() else None,
         "gold_codes": _get_gold_codes(),
         "labels": LABELS,
@@ -275,13 +311,39 @@ def _run_pipeline_and_predict(gold_code: str | None = None):
         "prices": merge["price"].round(0).tolist(),
         "predictions": [p if p is not None else "N/A" for p in merge["prediction_label"]],
         "probabilities": [_safe_prob(p) for p in merge.get("prob_buy_label", [None]*len(merge))],
+        "features": feature_series,
         "latest": {
             "date": str(merge["date"].iloc[-1]),
             "price": float(merge["price"].iloc[-1]),
             "prediction": latest_pred,
             "prediction_date": str(latest_pred_date) if latest_pred_date is not None else None,
+            "prediction_date_price": latest_pred_date_price,
         },
     }
+
+    # Mô hình B: sau khi có dự đoán ML, lấy tin ngày dự đoán → LLM đánh giá và điều chỉnh
+    if request.args.get("llm") in ("1", "true", "yes"):
+        try:
+            try:
+                from frontend.llm_adjust import run_llm_adjust_for_latest
+            except ImportError:
+                from llm_adjust import run_llm_adjust_for_latest
+            llm_result = run_llm_adjust_for_latest(
+                ROOT,
+                str(latest_pred_date) if latest_pred_date is not None else None,
+                latest_pred,
+                latest_pred_date_price,
+            )
+            if llm_result is not None:
+                out["latest"]["llm_adjusted"] = llm_result
+        except Exception as e:
+            out["latest"]["llm_adjusted"] = {
+                "adjusted_signal": latest_pred,
+                "reasoning": f"Lỗi: {e}",
+                "confidence": 0.5,
+                "updated_price_note": "",
+            }
+    return out
 
 
 @app.route("/")
@@ -353,6 +415,78 @@ def api_predict():
         return jsonify(out)
     except FileNotFoundError as e:
         return jsonify({"error": f"File not found: {e}"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/date-detail")
+def api_date_detail():
+    """
+    Khi user chọn 1 ngày: trả về tin realtime + dự đoán bổ sung từ LLM (chỉ dựa trên tin).
+    Query: date=YYYY-MM-DD, gold_code= (tùy chọn).
+    """
+    date_str = (request.args.get("date") or "").strip()[:10]
+    gold_code = request.args.get("gold_code", "").strip() or None
+    if not date_str:
+        return jsonify({"error": "Thiếu tham số date (YYYY-MM-DD)"}), 400
+    try:
+        out = _run_pipeline_and_predict(gold_code=gold_code)
+        if out is None:
+            return jsonify({"error": "No data or pipeline failed"}), 500
+        dates = out.get("dates") or []
+        prices = out.get("prices") or []
+        predictions = out.get("predictions") or []
+        idx = None
+        for i, d in enumerate(dates):
+            if (d[:10] if isinstance(d, str) else str(d)[:10]) == date_str:
+                idx = i
+                break
+        if idx is None:
+            return jsonify({"error": f"Không có dữ liệu cho ngày {date_str}"}), 404
+        price = float(prices[idx]) if idx < len(prices) and prices[idx] is not None else 0.0
+        ml_pred = predictions[idx] if idx < len(predictions) else "N/A"
+        if ml_pred is None:
+            ml_pred = "N/A"
+
+        try:
+            try:
+                from frontend.llm_adjust import get_news_and_llm_supplement_for_date
+            except ImportError:
+                from llm_adjust import get_news_and_llm_supplement_for_date
+        except ImportError:
+            return jsonify({"error": "Module llm_adjust không tìm thấy"}), 500
+
+        import os
+        api_key = os.getenv("OPENAI_API_KEY")
+        gnews_key = os.getenv("GNEWS_API_KEY")
+        if not api_key or not gnews_key:
+            return jsonify({
+                "date": date_str,
+                "price": price,
+                "ml_prediction": ml_pred,
+                "news": [],
+                "llm_supplement": None,
+                "error": "Thiếu OPENAI_API_KEY hoặc GNEWS_API_KEY trong .env",
+            }), 200
+
+        from datetime import date as date_type
+        try:
+            d = date_type.fromisoformat(date_str)
+        except ValueError:
+            return jsonify({"error": f"Ngày không hợp lệ: {date_str}"}), 400
+        detail = get_news_and_llm_supplement_for_date(
+            prediction_date=d,
+            price_vnd=price,
+            api_key=api_key,
+            gnews_key=gnews_key,
+        )
+        return jsonify({
+            "date": date_str,
+            "price": price,
+            "ml_prediction": ml_pred,
+            "news": detail.get("news") or [],
+            "llm_supplement": detail.get("llm_supplement"),
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

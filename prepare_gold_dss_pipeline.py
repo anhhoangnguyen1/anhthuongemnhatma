@@ -575,7 +575,7 @@ def build_master_dataset(input_dir: Path, local_timezone: str = LOCAL_TIMEZONE) 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build cleaned DSS master dataset for gold forecasting.")
-    parser.add_argument("--input-dir", type=Path, default=Path("."), help="Directory containing source CSV files.")
+    parser.add_argument("--input-dir", type=Path, default=Path("input_1year"), help="Directory containing source CSV files (GOLD_PRICE.csv, usd_vnd_rate_live.csv, ...).")
     parser.add_argument("--output-file", type=Path, default=Path(DEFAULT_OUTPUT_FILE), help="Output CSV path.")
     parser.add_argument(
         "--timezone",

@@ -1,0 +1,30 @@
+# Environment
+.env
+.env.local
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Cache / generated data (có thể tạo lại)
+sjc_giavang_cache.csv
+FREE_GOLDAPI_HISTORY.csv
+.frontend_master_cache.csv
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
