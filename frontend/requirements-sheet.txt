@@ -1,0 +1,3 @@
+# Optional: chỉ cần khi dùng đồng bộ Google Sheet (GOOGLE_SHEET_ID trong .env)
+gspread>=5.0.0
+google-auth>=2.0.0

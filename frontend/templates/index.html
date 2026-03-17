@@ -270,21 +270,11 @@
   <div class="card card-dropdown">
     <h3 class="dropdown-label">Chọn mã vàng</h3>
     <div class="prediction-row dropdown-row">
-      <select id="gold-code" class="gold-code-select" title="Chọn 1 mã để xem 1 loại vàng, hoặc Trung bình tất cả">
-        <option value="">Trung bình tất cả (giá TB + mode dự đoán)</option>
+      <select id="gold-code" class="gold-code-select" title="Chọn mã vàng">
+        <option value="">Trung bình tất cả</option>
+        <option value="SJL1L10">Vàng miếng SJC 9999 (SJL1L10)</option>
+        <option value="DOJINHTV">Vàng nữ trang DOJI (DOJINHTV)</option>
       </select>
-      <label style="display:flex;align-items:center;gap:0.5rem;color:var(--text-muted);font-size:0.9rem;">
-        <input type="checkbox" id="use-llm" /> Đánh giá thêm bằng LLM (tin tức)
-      </label>
-    </div>
-  </div>
-
-  <div class="card" id="llm-adjusted-card" style="display:none;">
-    <h3 class="card-title" style="color:#a5b4fc;">Đánh giá LLM (Mô hình B)</h3>
-    <div class="llm-inner">
-      <p style="margin:0.25rem 0;"><strong>Tín hiệu sau khi xem tin:</strong> <span id="llm-adjusted-signal" class="prediction-badge">--</span></p>
-      <p style="margin:0.25rem 0; color:var(--text-muted);"><strong>Lý do:</strong> <span id="llm-reasoning"></span></p>
-      <p style="margin:0.25rem 0; color:var(--text-muted);"><strong>Độ tin cậy:</strong> <span id="llm-confidence"></span> · <strong>Ghi chú giá:</strong> <span id="llm-price-note"></span></p>
     </div>
   </div>
 
@@ -414,18 +404,6 @@
       document.getElementById('latest-pred-date').textContent = latest.prediction_date ? '(ngày ' + latest.prediction_date.slice(0, 10) + ')' : '';
       document.getElementById('metric-gold-code').textContent = goldCode ? goldCode : 'Trung bình tất cả';
       document.getElementById('gold-code-hint').textContent = goldCode ? 'Mã: ' + goldCode : 'Chọn mã để xem chi tiết';
-
-      const llmCard = document.getElementById('llm-adjusted-card');
-      if (latest.llm_adjusted) {
-        llmCard.style.display = 'block';
-        document.getElementById('llm-adjusted-signal').textContent = latest.llm_adjusted.adjusted_signal || pred;
-        document.getElementById('llm-adjusted-signal').className = 'prediction-badge ' + predClass(latest.llm_adjusted.adjusted_signal || pred);
-        document.getElementById('llm-reasoning').textContent = latest.llm_adjusted.reasoning || '—';
-        document.getElementById('llm-confidence').textContent = (latest.llm_adjusted.confidence != null) ? (Math.round(latest.llm_adjusted.confidence * 100) + '%') : '—';
-        document.getElementById('llm-price-note').textContent = latest.llm_adjusted.updated_price_note || '—';
-      } else {
-        llmCard.style.display = 'none';
-      }
 
       const title = document.getElementById('chart-title');
       if (goldCode) {
@@ -612,16 +590,12 @@
       document.getElementById('latest-prediction').className = 'prediction-badge loading';
 
       try {
-        let url = goldCode ? '/api/predict?gold_code=' + encodeURIComponent(goldCode) : '/api/predict';
-        if (document.getElementById('use-llm').checked) url += (url.indexOf('?') >= 0 ? '&' : '?') + 'llm=1';
+        const url = goldCode ? '/api/predict?gold_code=' + encodeURIComponent(goldCode) : '/api/predict';
         const r = await fetch(url);
         const data = await r.json();
         if (!r.ok) {
           showError(data.error || 'Lỗi API');
           return;
-        }
-        if (Array.isArray(data.gold_codes) && data.gold_codes.length > 0) {
-          fillGoldCodeOptions(data.gold_codes);
         }
         if (Array.isArray(data.labels) && data.labels.length > 0) {
           _labels = data.labels;
@@ -700,20 +674,6 @@
           });
         }
       }
-    }
-
-    function fillGoldCodeOptions(codes) {
-      const sel = document.getElementById('gold-code');
-      if (!sel) return;
-      if (!Array.isArray(codes) || codes.length === 0) return;
-      const already = sel.options.length > 1;
-      if (already) return;
-      codes.forEach(function(code) {
-        const opt = document.createElement('option');
-        opt.value = code;
-        opt.textContent = code;
-        sel.appendChild(opt);
-      });
     }
 
     function openDateDetail(dateStr) {
@@ -900,11 +860,6 @@
     (async function init() {
       const sel = document.getElementById('gold-code');
       if (sel) sel.addEventListener('change', load);
-      try {
-        const r = await fetch('/api/gold_codes');
-        const data = await r.json();
-        fillGoldCodeOptions(data.gold_codes || []);
-      } catch (e) {}
       load();
       loadMacro();
     })();

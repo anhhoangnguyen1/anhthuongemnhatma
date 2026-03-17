@@ -37,12 +37,13 @@ frontend/app.py  <-- đọc master + output/*  -->  /api/predict, /api/macro, /a
 - **output/** – `xgboost_dss_model.pkl`, `scaler_xgboost_dss.pkl`, `label_encoder_dss.pkl`, `model_config.json`, `evaluation_metrics.txt`, `xgboost_feature_importance.png`.
 
 ### Frontend
-- **frontend/app.py** – API predict, macro, date-detail; đọc master từ `New folder/master_dss_dataset.csv`, model từ `New folder/output/`.
+- **frontend/app.py** – API predict, macro, date-detail; đọc master từ `New folder/master_dss_dataset.csv`, model từ `New folder/output/`. Khi chạy `python frontend/app.py`, gọi **frontend/sheet_sync.py** để kéo dữ liệu mới từ Google Sheet (nếu có GOOGLE_SHEET_ID) và append vào master.
+- **frontend/sheet_sync.py** – Đồng bộ Google Sheet realtime → `New folder/master_dss_dataset.csv` (cột: timestamp, gold_code, buy_price, sell_price, usd_vnd_rate, fed_rate, cpi_inflation_yoy, dxy_index, interest_rate_state, interest_rate_market; số có thể dạng EU `25813,17`).
 - **frontend/llm_adjust.py** – GNews + OpenAI: đánh giá LLM, dự đoán bổ sung theo ngày.
 - **frontend/templates/index.html** – Giao diện chart, chọn mã vàng, chi tiết theo ngày.
 
 ### Cấu hình
-- **.env** – OPENAI_API_KEY, GNEWS_API_KEY
+- **.env** – OPENAI_API_KEY, GNEWS_API_KEY; tuỳ chọn: GOOGLE_SHEET_ID, GOOGLE_APPLICATION_CREDENTIALS (để sync Sheet). Cần cài `gspread` và `google-auth` nếu dùng sync Sheet.
 - **.env.example** – Mẫu biến môi trường.
 
 ## Đã xoá / không dùng

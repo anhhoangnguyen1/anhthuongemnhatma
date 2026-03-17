@@ -492,6 +492,23 @@ def api_date_detail():
 
 
 if __name__ == "__main__":
+    # Đồng bộ dữ liệu mới từ Google Sheet vào master (nếu có GOOGLE_SHEET_ID + credentials)
+    try:
+        from frontend.sheet_sync import sync_master_from_google_sheet
+    except ImportError:
+        from sheet_sync import sync_master_from_google_sheet
+    master_path = NEW_FOLDER / "master_dss_dataset.csv"
+    synced = sync_master_from_google_sheet(master_path)
+    if synced is None:
+        print("[Sheet sync] Sync bỏ qua (xem log trên để biết lý do).")
+    elif synced == 0:
+        print("[Sheet sync] Không có dòng mới từ Sheet so với master.")
+    elif synced > 0:
+        g = globals()
+        g["_master_path_cache"] = None
+        g["_gold_codes_cache"] = None
+    # Nếu synced is None: không cấu hình Sheet hoặc lỗi, bỏ qua
+
     if not MODEL_PATH.exists():
         print("Model not found at", MODEL_PATH, "- train first (New folder/train_xgboost_dss.py)")
     else:

@@ -1,7 +1,8 @@
 # Environment
 .env
 .env.local
-*.env
+.env.*
+!.env.example
 
 # Python
 __pycache__/
@@ -13,6 +14,13 @@ __pycache__/
 .eggs/
 dist/
 build/
+venv/
+.venv/
+
+# Google / credentials (không commit key)
+client_secret_*.json
+anh-hoang-490504-*.json
+.token_sheet.json
 
 # Cache / generated data (có thể tạo lại)
 sjc_giavang_cache.csv
@@ -28,3 +36,6 @@ FREE_GOLDAPI_HISTORY.csv
 # OS
 .DS_Store
 Thumbs.db
+anh-hoang-490504-11bd27226229.json
+client_secret_70084691874-jd8a7i3fip6oh22dqav0e83k991ceuj6.apps.googleusercontent.com.json
+.env.example
