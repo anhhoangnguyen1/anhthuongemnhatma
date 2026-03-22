@@ -2,14 +2,14 @@
   "buy_pct": 0.5,
   "horizon": 7,
   "optimal_threshold": 0.15,
-  "f1_macro": 0.5613,
+  "f1_macro": 0.538,
   "train_date_range": [
     "2009-10-09",
-    "2022-11-30"
+    "2022-12-01"
   ],
   "test_date_range": [
-    "2022-11-30",
-    "2026-03-14"
+    "2022-12-01",
+    "2026-03-15"
   ],
   "n_features": 46,
   "feature_names": [

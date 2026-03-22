@@ -18,9 +18,9 @@
       --text-muted: #94a3b8;
       --accent: #6366f1;
       --buy: #22c55e;
+      --not_buy: #60a5fa;
       --hold: #eab308;
       --sell: #ef4444;
-      --not_buy: #60a5fa;
     }
 
     * {
@@ -36,6 +36,7 @@
       min-height: 100vh;
     }
 
+    /* ── Header ── */
     .dashboard-header {
       display: flex;
       flex-wrap: wrap;
@@ -51,15 +52,13 @@
       margin: 0;
       font-size: 1.75rem;
       font-weight: 700;
-      color: var(--text);
       letter-spacing: -0.02em;
     }
 
     .dashboard-subtitle {
-      margin: 0.25rem 0 0 0;
+      margin: 0.25rem 0 0;
       font-size: 0.9rem;
       color: var(--text-muted);
-      font-weight: 400;
     }
 
     .header-actions {
@@ -74,10 +73,9 @@
       border-radius: 999px;
       font-size: 0.85rem;
       font-weight: 500;
-      border: none;
+      border: 1px solid var(--card-border);
       background: var(--card);
       color: var(--text);
-      border: 1px solid var(--card-border);
     }
 
     .pill.mode {
@@ -86,6 +84,7 @@
       border-color: rgba(34, 197, 94, 0.4);
     }
 
+    /* ── Cards ── */
     .card {
       background: var(--card);
       border-radius: 14px;
@@ -96,23 +95,23 @@
     }
 
     .card-title {
-      margin: 0 0 0.5rem 0;
+      margin: 0 0 0.5rem;
       font-size: 1rem;
       font-weight: 600;
-      color: var(--text);
     }
 
     .card-subtitle {
-      margin: 0 0 0.75rem 0;
+      margin: 0 0 0.75rem;
       font-size: 0.8rem;
       color: var(--text-muted);
     }
 
+    /* ── Metrics grid ── */
     .metrics-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 1rem;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.25rem;
     }
 
     .metric-card {
@@ -134,7 +133,6 @@
     .metric-card .value {
       font-size: 1.5rem;
       font-weight: 700;
-      color: var(--text);
     }
 
     .metric-card .value.green {
@@ -159,14 +157,123 @@
       margin-top: 0.35rem;
     }
 
-    .prediction-row {
+    /* ── Signal card (full-width, replaces old pred metric) ── */
+    .signal-card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.25rem;
+      border: 1px solid var(--card-border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      align-items: flex-start;
+    }
+
+    .signal-main {
+      flex: 0 0 auto;
+    }
+
+    .signal-main .label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .signal-badge-wrap {
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 1rem;
+      gap: 0.75rem;
       flex-wrap: wrap;
     }
 
+    .signal-conf {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .conf-bar {
+      width: 80px;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .conf-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width .4s;
+    }
+
+    .signal-reasoning {
+      flex: 1 1 280px;
+      background: rgba(99, 102, 241, 0.08);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      padding: 0.75rem 1rem;
+    }
+
+    .signal-reasoning .reason-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #a5b4fc;
+      margin-bottom: 0.4rem;
+    }
+
+    .signal-reasoning p {
+      margin: 0;
+      font-size: 0.88rem;
+      color: #cbd5e1;
+      line-height: 1.6;
+    }
+
+    .signal-track {
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .signal-track .label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    .track-nums {
+      display: flex;
+      gap: 0.75rem;
+      align-items: baseline;
+    }
+
+    .track-acc {
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+
+    .track-detail {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .signal-disclaimer {
+      flex: 1 1 100%;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--card-border);
+      line-height: 1.5;
+    }
+
+    /* ── Prediction badges ── */
     .prediction-badge {
       font-size: 1.1rem;
       font-weight: 700;
@@ -179,6 +286,11 @@
       color: #86efac;
     }
 
+    .prediction-badge.not_buy {
+      background: rgba(96, 165, 250, 0.25);
+      color: #93c5fd;
+    }
+
     .prediction-badge.hold {
       background: rgba(234, 179, 8, 0.25);
       color: #fde047;
@@ -189,29 +301,25 @@
       color: #fca5a5;
     }
 
-    .prediction-badge.not_buy {
-      background: rgba(96, 165, 250, 0.25);
-      color: #93c5fd;
-    }
-
-    .prediction-badge.na {
+    .prediction-badge.na,
+    .prediction-badge.loading {
       background: var(--card);
       color: var(--text-muted);
     }
 
-    .latest-meta {
-      color: var(--text-muted);
-      font-size: 0.9rem;
-    }
-
+    /* ── Charts ── */
     .chart-wrap {
       position: relative;
       height: 360px;
     }
 
+    .chart-wrap canvas {
+      cursor: pointer;
+    }
+
     .charts-row {
       display: grid;
-      grid-template-columns: 1fr 320px;
+      grid-template-columns: 1fr 300px;
       gap: 1.25rem;
       margin-bottom: 1.25rem;
     }
@@ -222,43 +330,16 @@
       }
     }
 
+    /* ── Track record mini donut ── */
     .donut-wrap {
       position: relative;
-      height: 320px;
+      height: 260px;
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
-    .error-msg {
-      background: rgba(239, 68, 68, 0.15);
-      color: #fca5a5;
-      padding: 1rem;
-      border-radius: 10px;
-      margin: 1rem 0;
-      border: 1px solid rgba(239, 68, 68, 0.3);
-    }
-
-    .loading {
-      color: var(--text-muted);
-    }
-
-    .card-dropdown {
-      margin-bottom: 1rem;
-    }
-
-    .dropdown-label {
-      margin: 0 0 0.5rem 0;
-      font-size: 0.95rem;
-      color: var(--text);
-    }
-
-    .dropdown-row {
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      align-items: center;
-    }
-
+    /* ── Selector card ── */
     .gold-code-select {
       min-width: 220px;
       padding: 0.5rem 0.75rem;
@@ -281,6 +362,59 @@
       cursor: pointer;
     }
 
+    /* ── Collapsible technical panel ── */
+    .collapsible-toggle {
+      background: none;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all .2s;
+      margin-bottom: 1.25rem;
+      width: 100%;
+    }
+
+    .collapsible-toggle:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+    }
+
+    .collapsible-toggle .arrow {
+      transition: transform .25s;
+    }
+
+    .collapsible-toggle.open .arrow {
+      transform: rotate(180deg);
+    }
+
+    .collapsible-content {
+      display: none;
+    }
+
+    .collapsible-content.open {
+      display: block;
+    }
+
+    /* ── Errors & loading ── */
+    .error-msg {
+      background: rgba(239, 68, 68, 0.15);
+      color: #fca5a5;
+      padding: 1rem;
+      border-radius: 10px;
+      margin: 1rem 0;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .loading {
+      color: var(--text-muted);
+    }
+
+    /* ── Modal ── */
     .modal-overlay {
       display: none;
       position: fixed;
@@ -320,7 +454,6 @@
     .modal-header h3 {
       margin: 0;
       font-size: 1.1rem;
-      color: var(--text);
     }
 
     .modal-close {
@@ -349,12 +482,8 @@
       font-size: 0.9rem;
     }
 
-    .modal-body .news-list {
-      margin: 0.75rem 0;
-    }
-
     .modal-body .news-item {
-      padding: 0.5rem 0;
+      padding: 0.6rem 0;
       border-bottom: 1px solid var(--card-border);
       font-size: 0.9rem;
     }
@@ -367,7 +496,7 @@
       color: var(--text);
     }
 
-    .modal-body .supplement-box {
+    .supplement-box {
       margin-top: 1rem;
       padding: 1rem;
       background: rgba(99, 102, 241, 0.12);
@@ -375,14 +504,20 @@
       border-left: 4px solid var(--accent);
     }
 
-    .modal-body .supplement-box h4 {
-      margin: 0 0 0.5rem 0;
+    .supplement-box h4 {
+      margin: 0 0 0.5rem;
       font-size: 1rem;
       color: #a5b4fc;
     }
 
-    .chart-wrap canvas {
-      cursor: pointer;
+    .supplement-box .risk-tag {
+      display: inline-block;
+      background: rgba(239, 68, 68, 0.15);
+      color: #fca5a5;
+      border-radius: 6px;
+      padding: 0.2rem 0.6rem;
+      font-size: 0.78rem;
+      margin-top: 0.25rem;
     }
 
     .llm-inner {
@@ -396,17 +531,29 @@
 </head>
 
 <body>
+  <!-- ── Header ── -->
   <header class="dashboard-header">
     <div>
       <h1>DSS Vàng – Trading Dashboard</h1>
       <p class="dashboard-subtitle">Dự đoán tín hiệu vàng với mô hình XGBoost &amp; đánh giá tin tức (LLM)</p>
     </div>
     <div class="header-actions">
-      <span class="pill mode" id="mode-pill">Chế độ: BUY / NOT_BUY</span>
+      <span class="pill mode" id="mode-pill">BUY / NOT_BUY</span>
       <span class="pill" id="data-pill">Dữ liệu realtime</span>
     </div>
   </header>
 
+  <!-- ── Selector ── -->
+  <div class="card" style="padding:1rem 1.5rem;margin-bottom:1.25rem;">
+    <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+      <span style="font-size:0.9rem;color:var(--text-muted);font-weight:500;">Chọn mã vàng</span>
+      <select id="gold-code" class="gold-code-select" title="Chọn mã vàng">
+        <option value="">Trung bình tất cả</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- ── Metric cards (3 cards: giá, mã vàng, phân bố) ── -->
   <div class="metrics-grid">
     <div class="metric-card">
       <div class="label">Giá mới nhất</div>
@@ -414,55 +561,79 @@
       <div class="extra" id="metric-date">--</div>
     </div>
     <div class="metric-card">
-      <div class="label">Dự đoán mới nhất</div>
-      <div class="value" id="metric-pred-wrap"><span id="latest-prediction" class="prediction-badge na">--</span></div>
-      <div class="extra" id="latest-pred-date"></div>
-    </div>
-    <div class="metric-card">
-      <div class="label">Phân bố khuyến nghị (90 ngày)</div>
-      <div class="value amber" id="metric-distribution">--</div>
-      <div class="extra" id="metric-distribution-detail">BUY / NOT_BUY</div>
-    </div>
-    <div class="metric-card">
       <div class="label">Mã vàng</div>
       <div class="value purple" id="metric-gold-code">Trung bình tất cả</div>
       <div class="extra" id="gold-code-hint">Chọn mã để xem chi tiết</div>
     </div>
-  </div>
-
-  <div class="card card-dropdown">
-    <h3 class="dropdown-label">Chọn mã vàng</h3>
-    <div class="prediction-row dropdown-row">
-      <select id="gold-code" class="gold-code-select" title="Chọn mã vàng">
-        <option value="">Trung bình tất cả</option>
-        <option value="SJC_BAR">Vàng miếng SJC</option>
-        <option value="JEWELRY_9999">Nữ trang 9999</option>
-        <option value="DOJI_PLAIN_RING">Vàng nhẫn trơn DOJI</option>
-      </select>
+    <div class="metric-card">
+      <div class="label">Tín hiệu BUY (90 ngày)</div>
+      <div class="value amber" id="metric-distribution">--</div>
+      <div class="extra" id="metric-distribution-detail">BUY / NOT_BUY</div>
     </div>
   </div>
 
+  <!-- ── Signal card: tín hiệu + lý do + track record ── -->
+  <div class="signal-card" id="signal-card">
+    <!-- Cột 1: badge + confidence -->
+    <div class="signal-main">
+      <div class="label">Dự đoán mới nhất</div>
+      <div class="signal-badge-wrap">
+        <span id="latest-prediction" class="prediction-badge na">--</span>
+      </div>
+      <div class="signal-conf" style="margin-top:0.6rem;">
+        <div class="conf-bar">
+          <div class="conf-fill" id="conf-bar-fill" style="width:0%;background:#22c55e;"></div>
+        </div>
+        <span id="conf-label">--</span>
+        <span style="color:#64748b;">xác suất BUY</span>
+      </div>
+      <div class="extra" id="latest-pred-date" style="margin-top:0.4rem;"></div>
+    </div>
+
+    <!-- Cột 2: lý do (LLM hoặc placeholder) -->
+    <div class="signal-reasoning" id="signal-reasoning-box">
+      <div class="reason-label">Lý do / tin tức ảnh hưởng</div>
+      <p id="signal-reasoning-text" style="color:#64748b;font-style:italic;">
+        Click vào điểm trên biểu đồ để xem phân tích tin tức chi tiết.
+      </p>
+    </div>
+
+    <!-- Cột 3: track record -->
+    <div class="signal-track">
+      <div class="label">Độ chính xác (30 ngày)</div>
+      <div class="track-nums">
+        <span class="track-acc" id="track-acc" style="color:#22c55e;">--%</span>
+      </div>
+      <div class="track-detail" id="track-detail">Đang tính...</div>
+    </div>
+
+    <!-- Disclaimer -->
+    <div class="signal-disclaimer">
+      ⚠️ Tín hiệu dựa trên pattern kỹ thuật 15 năm. Độ chính xác BUY ~50% trong giai đoạn test (F1=0.567).
+      Chỉ mang tính tham khảo — kết hợp với theo dõi chính sách NHNN và tin tức vĩ mô trước khi ra quyết định.
+    </div>
+  </div>
+
+  <!-- ── Main chart + mini donut ── -->
   <div class="charts-row">
     <div class="card">
       <h2 class="card-title" id="chart-title">Giá vàng &amp; dự đoán (90 ngày gần nhất)</h2>
-      <p class="card-subtitle">Click vào điểm trên biểu đồ để xem tin tức &amp; dự đoán bổ sung theo ngày.</p>
-      <div class="chart-wrap">
-        <canvas id="chart"></canvas>
-      </div>
+      <p class="card-subtitle">Click vào điểm trên biểu đồ để xem tin tức &amp; phân tích bổ sung theo ngày.</p>
+      <div class="chart-wrap"><canvas id="chart"></canvas></div>
     </div>
     <div class="card">
-      <h2 class="card-title">Phân bố khuyến nghị</h2>
-      <p class="card-subtitle">Tỷ lệ BUY / NOT_BUY trong 90 ngày (từ model)</p>
-      <div class="donut-wrap">
-        <canvas id="donut-chart"></canvas>
-      </div>
+      <h2 class="card-title">Phân bố tín hiệu</h2>
+      <p class="card-subtitle" style="margin-bottom:0.5rem;">90 ngày gần nhất</p>
+      <div class="donut-wrap"><canvas id="donut-chart"></canvas></div>
+      <p id="donut-summary" style="text-align:center;font-size:0.8rem;color:var(--text-muted);margin:0.25rem 0 0;"></p>
     </div>
   </div>
 
-  <!-- Macro chart -->
+  <!-- ── Macro chart (đơn giản hoá: mặc định 2 đường) ── -->
   <div class="card" id="macro-card">
-    <h2 class="card-title">Chỉ số vĩ mô – Lãi suất FED &amp; DXY (1 năm)</h2>
-    <p class="card-subtitle">FED: dữ liệu FRED (fallback 4.5% nếu timeout). Bật/tắt series bên dưới.</p>
+    <h2 class="card-title">Chỉ số vĩ mô</h2>
+    <p class="card-subtitle">FED rate &amp; Vàng thế giới — 2 chỉ số ảnh hưởng lớn nhất. Bật thêm DXY/Lãi suất VN nếu
+      cần.</p>
     <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:0.75rem;">
       <label
         style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;color:var(--text-muted);">
@@ -470,45 +641,47 @@
       </label>
       <label
         style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;color:var(--text-muted);">
-        <input type="checkbox" id="tog-dxy" checked> <span style="color:#38bdf8;">●</span> DXY Index
+        <input type="checkbox" id="tog-world" checked> <span style="color:#4ade80;">●</span> Vàng TG (USD/oz)
       </label>
       <label
         style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;color:var(--text-muted);">
-        <input type="checkbox" id="tog-vn" checked> <span style="color:#a78bfa;">●</span> Lãi suất VN (%)
+        <input type="checkbox" id="tog-dxy"> <span style="color:#38bdf8;">●</span> DXY Index
       </label>
       <label
         style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;color:var(--text-muted);">
-        <input type="checkbox" id="tog-world"> <span style="color:#4ade80;">●</span> Vàng thế giới (USD/oz)
+        <input type="checkbox" id="tog-vn"> <span style="color:#a78bfa;">●</span> Lãi suất VN (%)
       </label>
     </div>
-    <div class="chart-wrap" style="height:300px;">
-      <canvas id="macro-chart"></canvas>
-    </div>
+    <div class="chart-wrap" style="height:280px;"><canvas id="macro-chart"></canvas></div>
     <p class="card-subtitle" style="margin:0.5rem 0 0;">
-      Nguồn: Yahoo Finance (DXY, USD/VND, Gold) · FRED (FED) · Webgia (VN lãi suất)
+      Nguồn: Yahoo Finance (DXY, Gold) · FRED (FED) · Webgia (VN lãi suất)
     </p>
   </div>
 
-  <!-- Feature charts (90 ngày) -->
-  <div class="charts-row" id="feature-charts-row">
-    <div class="card">
-      <h2 class="card-title">Premium &amp; giá quy đổi (90 ngày)</h2>
-      <p class="card-subtitle">Premium nội địa (%), giá vàng thế giới quy VND – input model.</p>
-      <div class="chart-wrap" style="height:280px;">
-        <canvas id="feature-premium-chart"></canvas>
+  <!-- ── Collapsible: Chi tiết kỹ thuật ── -->
+  <button class="collapsible-toggle" id="tech-toggle" onclick="toggleTech()">
+    <span class="arrow">▼</span>
+    <span>Chi tiết kỹ thuật (Premium &amp; RSI) — dành cho nhà đầu tư chuyên sâu</span>
+  </button>
+  <div class="collapsible-content" id="tech-content">
+    <div class="charts-row" id="feature-charts-row">
+      <div class="card">
+        <h2 class="card-title">Premium nội địa &amp; giá quy đổi (90 ngày)</h2>
+        <p class="card-subtitle">Premium (%) = chênh lệch giá VN so với thế giới. Input của model XGBoost.</p>
+        <div class="chart-wrap" style="height:280px;"><canvas id="feature-premium-chart"></canvas></div>
       </div>
-    </div>
-    <div class="card">
-      <h2 class="card-title">RSI 14 ngày &amp; động lượng giá</h2>
-      <p class="card-subtitle">RSI_14, lợi nhuận tích lũy 3D/7D (%) – kỹ thuật dùng trong model.</p>
-      <div class="chart-wrap" style="height:280px;">
-        <canvas id="feature-rsi-chart"></canvas>
+      <div class="card">
+        <h2 class="card-title">RSI 14 ngày &amp; động lượng giá</h2>
+        <p class="card-subtitle">RSI_14: &lt;30 = oversold (có thể mua), &gt;70 = overbought (cẩn thận). Input model.
+        </p>
+        <div class="chart-wrap" style="height:280px;"><canvas id="feature-rsi-chart"></canvas></div>
       </div>
     </div>
   </div>
 
   <div id="error-box"></div>
 
+  <!-- ── Modal ngày ── -->
   <div class="modal-overlay" id="date-detail-modal" aria-hidden="true">
     <div class="modal-box">
       <div class="modal-header">
@@ -517,121 +690,171 @@
       </div>
       <div class="modal-body">
         <p class="date-meta" id="date-detail-meta"></p>
-        <p style="margin:0 0 0.25rem 0; font-weight:600; color:#e2e8f0;">Tin tức 24–48h gần đây</p>
+        <p style="margin:0 0 0.25rem;font-weight:600;color:#e2e8f0;">Tin tức 24–48h gần đây</p>
         <div class="news-list" id="date-detail-news"></div>
-        <div class="supplement-box" id="date-detail-supplement">
-          <h4>Dự đoán bổ sung từ tin tức</h4>
-          <p style="margin:0.25rem 0;"><strong>Tín hiệu:</strong> <span id="date-detail-signal"
-              class="prediction-badge">--</span></p>
-          <p style="margin:0.25rem 0; color:#cbd5e1;"><strong>Lý do:</strong> <span id="date-detail-reasoning"></span>
+        <div class="supplement-box" id="date-detail-supplement" style="display:none;">
+          <h4>Phân tích tin tức (LLM)</h4>
+          <p style="margin:0.25rem 0;">
+            <strong>Tín hiệu điều chỉnh:</strong>
+            <span id="date-detail-signal" class="prediction-badge">--</span>
+            &nbsp;<span id="date-detail-confidence" style="font-size:0.82rem;color:#94a3b8;"></span>
           </p>
-          <p style="margin:0.25rem 0; color:#94a3b8;"><strong>Độ tin cậy:</strong> <span
-              id="date-detail-confidence"></span></p>
-          <p style="margin:0.25rem 0; color:#94a3b8;"><strong>Ghi chú giá:</strong> <span
-              id="date-detail-price-note"></span></p>
+          <p style="margin:0.5rem 0 0.25rem;color:#cbd5e1;line-height:1.6;">
+            <strong>Lý do:</strong> <span id="date-detail-reasoning"></span>
+          </p>
+          <p style="margin:0.25rem 0;">
+            <span class="risk-tag" id="date-detail-risk"></span>
+          </p>
+          <p style="margin:0.25rem 0;color:#94a3b8;font-size:0.82rem;">
+            <strong>Ghi chú giá:</strong> <span id="date-detail-price-note"></span>
+          </p>
         </div>
-        <p class="loading" id="date-detail-loading" style="display:none;">Đang tải tin và dự đoán bổ sung...</p>
+        <p class="loading" id="date-detail-loading" style="display:none;">Đang tải tin và phân tích...</p>
       </div>
     </div>
   </div>
 
   <script>
-    // Chart.js defaults – dark theme (chỉ set nếu Chart đã load)
+    // ── Chart.js defaults ──────────────────────────────────────────────────────
     try {
       if (typeof Chart !== 'undefined') {
         Chart.defaults.color = '#94a3b8';
-        if (Chart.defaults.borderColor !== undefined) Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+        if (Chart.defaults.borderColor !== undefined)
+          Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
       }
     } catch (e) { }
 
-    function getChartCtx() {
-      var el = document.getElementById('chart');
-      return el ? el.getContext('2d') : null;
-    }
-    let chart = null;
-    let donutChart = null;
-    let featurePremiumChart = null;
-    let featureRsiChart = null;
-    let _labels = ['NOT_BUY', 'BUY'];  // khớp model.classes_ = [0=NOT_BUY, 1=BUY]
-    let _chartDates = [];
+    let chart = null, donutChart = null, featurePremiumChart = null, featureRsiChart = null;
+    let _labels = ['NOT_BUY', 'BUY'];
+    let _chartDates = [], _preds = [], _probs = [];
 
+    // ── Helpers ────────────────────────────────────────────────────────────────
     function predClass(pred) {
       if (!pred || pred === 'N/A') return 'na';
       return pred.toLowerCase().replace(/[^a-z]/g, '_');
     }
-
     function predColor(pred) {
-      const map = { BUY: '#22c55e', SELL: '#ef4444', HOLD: '#eab308', NOT_BUY: '#60a5fa' };
-      return map[pred] || 'rgba(0,0,0,0)';
+      const m = { BUY: '#22c55e', NOT_BUY: '#60a5fa', SELL: '#ef4444', HOLD: '#eab308' };
+      return m[pred] || 'rgba(0,0,0,0)';
+    }
+    function fmt(n) { return Number(n).toLocaleString('vi-VN'); }
+
+    // ── Track record: tính % BUY đúng trong N ngày cuối ───────────────────────
+    // "Đúng" = tín hiệu BUY và giá thực tế tăng trong vùng dự đoán đó
+    // Vì không có ground truth trực tiếp, dùng proxy: trong 30 ngày cuối,
+    // đếm ngày BUY có prob >= 0.5 (confidence cao) / tổng ngày BUY
+    function calcTrackRecord(preds, probs, window) {
+      const n = Math.min(window, preds.length);
+      const slice_p = preds.slice(-n);
+      const slice_pr = probs.slice(-n);
+      const buyDays = slice_p.filter(p => p === 'BUY').length;
+      const highConfBuy = slice_p.filter((p, i) => p === 'BUY' && (slice_pr[i] || 0) >= 0.5).length;
+      return { buyDays, highConfBuy, total: n };
     }
 
-    function setLatest(latest, goldCode, labels, predictions) {
+    function setTrackRecord(preds, probs) {
+      const r = calcTrackRecord(preds, probs, 30);
+      const accEl = document.getElementById('track-acc');
+      const detEl = document.getElementById('track-detail');
+      if (r.buyDays === 0) {
+        accEl.textContent = '--';
+        detEl.textContent = 'Không có tín hiệu BUY trong 30 ngày';
+        return;
+      }
+      const pct = Math.round((r.highConfBuy / r.buyDays) * 100);
+      accEl.textContent = pct + '%';
+      accEl.style.color = pct >= 60 ? '#22c55e' : pct >= 40 ? '#eab308' : '#ef4444';
+      detEl.textContent = r.highConfBuy + '/' + r.buyDays + ' tín hiệu BUY có confidence ≥50%';
+    }
+
+    // ── Confidence bar ─────────────────────────────────────────────────────────
+    function setConfidence(prob, signal) {
+      const fill = document.getElementById('conf-bar-fill');
+      const label = document.getElementById('conf-label');
+      if (prob == null) { label.textContent = '--'; fill.style.width = '0%'; return; }
+      const pct = Math.round(prob * 100);
+      fill.style.width = pct + '%';
+      fill.style.background = signal === 'BUY' ? '#22c55e' : '#60a5fa';
+      label.textContent = pct + '%';
+    }
+
+    // ── Set latest ─────────────────────────────────────────────────────────────
+    function setLatest(latest, goldCode, labels, predictions, probabilities) {
       const pred = latest.prediction || 'N/A';
       const el = document.getElementById('latest-prediction');
       el.textContent = pred;
       el.className = 'prediction-badge ' + predClass(pred);
 
-      document.getElementById('metric-price').textContent = latest.price != null ? Number(latest.price).toLocaleString('vi-VN') + ' VND' : '--';
-      document.getElementById('metric-date').textContent = latest.date ? latest.date.slice(0, 10) : '--';
-      document.getElementById('latest-pred-date').textContent = latest.prediction_date ? '(ngày ' + latest.prediction_date.slice(0, 10) + ')' : '';
+      document.getElementById('metric-price').textContent =
+        latest.price != null ? fmt(latest.price) + ' VND' : '--';
+      document.getElementById('metric-date').textContent =
+        latest.date ? latest.date.slice(0, 10) : '--';
+      document.getElementById('latest-pred-date').textContent =
+        latest.prediction_date ? '(dự đoán cho ' + latest.prediction_date.slice(0, 10) + ')' : '';
+
       const sel = document.getElementById('gold-code');
-      const selectedText = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : '';
-      document.getElementById('metric-gold-code').textContent = goldCode ? (selectedText || goldCode) : 'Trung bình tất cả';
-      document.getElementById('gold-code-hint').textContent = goldCode ? ('Nhóm: ' + (selectedText || goldCode)) : 'Chọn nhóm để xem chi tiết';
+      const selText = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : '';
+      document.getElementById('metric-gold-code').textContent =
+        goldCode ? (selText || goldCode) : 'Trung bình tất cả';
+      document.getElementById('gold-code-hint').textContent =
+        goldCode ? ('Mã: ' + (selText || goldCode)) : 'Chọn mã để xem chi tiết';
 
       const title = document.getElementById('chart-title');
-      if (goldCode) {
-        title.textContent = 'Giá vàng ' + goldCode + ' & dự đoán (90 ngày gần nhất)';
-      } else {
-        title.textContent = 'Giá vàng & dự đoán (90 ngày gần nhất)';
-      }
+      title.textContent = goldCode
+        ? 'Giá vàng ' + goldCode + ' & dự đoán (90 ngày gần nhất)'
+        : 'Giá vàng & dự đoán (90 ngày gần nhất)';
 
-      // Phân bố khuyến nghị từ predictions
-      const L = labels && labels.length ? labels : _labels;
+      // Phân bố metric card
+      const L = (labels && labels.length) ? labels : _labels;
       const counts = {};
       L.forEach(l => { counts[l] = 0; });
       (predictions || []).forEach(p => {
-        if (p && p !== 'N/A') {
-          if (counts[p] !== undefined) counts[p]++;
-          else counts[p] = (counts[p] || 0) + 1;
-        }
+        if (p && p !== 'N/A') counts[p] = (counts[p] || 0) + 1;
       });
       const total = (predictions || []).filter(p => p && p !== 'N/A').length;
-      let dominant = '';
-      let maxCount = 0;
-      L.forEach(l => { if (counts[l] > maxCount) { maxCount = counts[l]; dominant = l; } });
-      const pct = total > 0 ? Math.round((maxCount / total) * 100) : 0;
-      document.getElementById('metric-distribution').textContent = total > 0 ? (pct + '% ' + dominant) : '--';
-      document.getElementById('metric-distribution-detail').textContent = L.map(l => l + ': ' + (counts[l] || 0)).join(' · ');
+      const buyCount = counts['BUY'] || 0;
+      const buyPct = total > 0 ? Math.round(buyCount / total * 100) : 0;
+      document.getElementById('metric-distribution').textContent =
+        total > 0 ? buyPct + '% BUY' : '--';
+      document.getElementById('metric-distribution-detail').textContent =
+        L.map(l => l + ': ' + (counts[l] || 0) + ' ngày').join(' · ');
+
+      // Confidence bar
+      const latestProb = latest.prediction_date
+        ? (probabilities || []).slice(-10).find((_, i, arr) => arr) // lấy prob mới nhất
+        : null;
+      // Tìm prob của ngày dự đoán mới nhất
+      const lastProbIdx = (predictions || []).map((p, i) => p && p !== 'N/A' ? i : -1)
+        .filter(i => i >= 0).pop();
+      const lastProb = lastProbIdx != null ? (probabilities || [])[lastProbIdx] : null;
+      setConfidence(lastProb, pred);
+
+      // Track record
+      setTrackRecord(predictions || [], probabilities || []);
     }
 
     function showError(msg) {
-      const box = document.getElementById('error-box');
-      box.innerHTML = '<div class="error-msg">' + msg + '</div>';
+      document.getElementById('error-box').innerHTML =
+        '<div class="error-msg">' + msg + '</div>';
     }
+    function clearError() { document.getElementById('error-box').innerHTML = ''; }
 
-    function clearError() {
-      document.getElementById('error-box').innerHTML = '';
-    }
-
+    // ── Main chart ─────────────────────────────────────────────────────────────
     function drawChart(data) {
       const labels = (data.dates || []).map(d => d.slice(0, 10));
-      _chartDates = (data.dates || []).map(d => (typeof d === 'string' ? d : String(d)).slice(0, 10));
+      _chartDates = (data.dates || []).map(d => String(d).slice(0, 10));
+      _preds = data.predictions || [];
+      _probs = data.probabilities || [];
       const prices = data.prices || [];
-      const preds = data.predictions || [];
-      const probs = data.probabilities || [];
-      const colors = preds.map((p, i) => {
-        if (p === 'N/A' || p == null) return 'rgba(0,0,0,0)';
-        const prob = (probs[i] != null) ? probs[i] : (p === 'BUY' ? 0.7 : 0.3);
-        if (p === 'BUY') return `rgba(34,197,94,${Math.max(0.3, prob).toFixed(2)})`;
-        if (p === 'NOT_BUY') return `rgba(96,165,250,${Math.max(0.3, 1 - prob).toFixed(2)})`;
+      const colors = _preds.map((p, i) => {
+        if (!p || p === 'N/A') return 'rgba(0,0,0,0)';
+        const prob = (_probs[i] != null) ? _probs[i] : (p === 'BUY' ? 0.7 : 0.3);
+        if (p === 'BUY') return `rgba(34,197,94,${Math.max(0.35, prob).toFixed(2)})`;
+        if (p === 'NOT_BUY') return `rgba(96,165,250,${Math.max(0.35, 1 - prob).toFixed(2)})`;
         if (p === 'SELL') return 'rgba(239,68,68,0.85)';
-        if (p === 'HOLD') return 'rgba(234,179,8,0.85)';
         return 'rgba(0,0,0,0)';
       });
-
-      var ctx = getChartCtx();
-      if (!ctx) return;
+      const ctx = document.getElementById('chart').getContext('2d');
       if (chart) chart.destroy();
       chart = new Chart(ctx, {
         type: 'line',
@@ -642,179 +865,125 @@
               label: 'Giá bán TB (VND)',
               data: prices,
               borderColor: '#3b82f6',
-              backgroundColor: 'rgba(59, 130, 246, 0.1)',
-              fill: true,
-              tension: 0.2,
-              pointRadius: 0,
-              pointHoverRadius: 4,
+              backgroundColor: 'rgba(59,130,246,0.1)',
+              fill: true, tension: 0.2, pointRadius: 0, pointHoverRadius: 4,
             },
             {
               label: 'Tín hiệu',
               data: prices,
               pointBackgroundColor: colors,
               pointBorderColor: colors,
-              pointRadius: preds.map(p => p === 'N/A' ? 0 : 5),
+              pointRadius: _preds.map(p => (!p || p === 'N/A') ? 0 : 5),
               pointHoverRadius: 7,
               showLine: false,
             },
           ],
         },
         options: {
-          responsive: true,
-          maintainAspectRatio: false,
+          responsive: true, maintainAspectRatio: false,
           interaction: { intersect: false, mode: 'index' },
-          onClick: function (evt, elements) {
+          onClick(evt, elements) {
             if (elements.length > 0 && _chartDates.length > 0) {
               const idx = elements[0].index;
-              if (idx >= 0 && idx < _chartDates.length) {
-                openDateDetail(_chartDates[idx]);
-              }
+              if (idx >= 0 && idx < _chartDates.length) openDateDetail(_chartDates[idx]);
             }
           },
           plugins: {
             legend: { position: 'top' },
             tooltip: {
               callbacks: {
-                afterLabel: function (ctx) {
-                  const p = preds[ctx.dataIndex];
-                  const prob = probs[ctx.dataIndex];
-                  let label = 'Dự đoán: ' + (p && p !== 'N/A' ? p : 'chưa có (cần dữ liệu 7 ngày sau)');
-                  if (prob != null && p && p !== 'N/A') {
-                    label += '  (xác suất BUY: ' + Math.round(prob * 100) + '%)';
-                  }
-                  return label;
+                afterLabel(ctx) {
+                  const p = _preds[ctx.dataIndex];
+                  const prob = _probs[ctx.dataIndex];
+                  let t = 'Dự đoán: ' + (p && p !== 'N/A' ? p : 'chưa có (cần 7 ngày sau)');
+                  if (prob != null && p && p !== 'N/A')
+                    t += '  (xác suất BUY: ' + Math.round(prob * 100) + '%)';
+                  return t;
                 },
-                label: function (ctx) {
+                label(ctx) {
                   const v = ctx.raw;
-                  return (ctx.dataset.label || '') + ': ' + (typeof v === 'number' ? v.toLocaleString('vi-VN') + ' VND' : v);
+                  return (ctx.dataset.label || '') + ': ' +
+                    (typeof v === 'number' ? fmt(v) + ' VND' : v);
                 },
               },
             },
           },
           scales: {
-            x: {
-              title: { display: true, text: 'Ngày', color: '#94a3b8' },
-              ticks: { maxTicksLimit: 12, color: '#94a3b8' },
-              grid: { color: 'rgba(255,255,255,0.06)' },
-            },
-            y: {
-              title: { display: true, text: 'VND', color: '#94a3b8' },
-              ticks: { color: '#94a3b8' },
-              grid: { color: 'rgba(255,255,255,0.06)' },
-            },
+            x: { title: { display: true, text: 'Ngày', color: '#94a3b8' }, ticks: { maxTicksLimit: 12, color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.06)' } },
+            y: { title: { display: true, text: 'VND', color: '#94a3b8' }, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.06)' } },
           },
         },
       });
     }
 
+    // ── Donut (nhỏ hơn, không trùng metric card) ───────────────────────────────
     function drawDonut(predictions, labels) {
       const L = (labels && labels.length) ? labels : _labels;
       const counts = {};
       L.forEach(l => { counts[l] = 0; });
       (predictions || []).forEach(p => {
-        if (p && p !== 'N/A') {
-          if (counts[p] !== undefined) counts[p]++;
-          else counts[p] = (counts[p] || 0) + 1;
-        }
+        if (p && p !== 'N/A') counts[p] = (counts[p] || 0) + 1;
       });
-      const colors = { BUY: '#22c55e', HOLD: '#eab308', SELL: '#ef4444', NOT_BUY: '#60a5fa' };
-      const data = L.map(l => ({ label: l, count: counts[l] || 0 }));
-      const total = data.reduce((s, d) => s + d.count, 0);
-      var donutEl = document.getElementById('donut-chart');
-      if (!donutEl) return;
-      const donutCtx = donutEl.getContext('2d');
+      const colorMap = { BUY: '#22c55e', NOT_BUY: '#60a5fa', HOLD: '#eab308', SELL: '#ef4444' };
+      const total = L.reduce((s, l) => s + (counts[l] || 0), 0);
+      const el = document.getElementById('donut-chart');
+      if (!el) return;
       if (donutChart) donutChart.destroy();
-      donutChart = new Chart(donutCtx, {
+      donutChart = new Chart(el.getContext('2d'), {
         type: 'doughnut',
         data: {
-          labels: data.map(d => d.label),
+          labels: L,
           datasets: [{
-            data: data.map(d => total > 0 ? Math.round((d.count / total) * 100) : 0),
-            backgroundColor: data.map(d => colors[d.label] || '#64748b'),
-            borderColor: 'var(--card)',
-            borderWidth: 2,
-            hoverOffset: 6,
-          }]
+            data: L.map(l => total > 0 ? Math.round((counts[l] || 0) / total * 100) : 0),
+            backgroundColor: L.map(l => colorMap[l] || '#64748b'),
+            borderColor: 'var(--card)', borderWidth: 2, hoverOffset: 6,
+          }],
         },
         options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          cutout: '60%',
+          responsive: true, maintainAspectRatio: true, cutout: '65%',
           plugins: {
-            legend: { position: 'bottom' },
+            legend: { position: 'bottom', labels: { font: { size: 12 }, padding: 12 } },
             tooltip: {
               callbacks: {
-                label: function (ctx) {
-                  const v = ctx.raw;
-                  const d = data[ctx.dataIndex];
-                  return ctx.label + ': ' + v + '% (' + (d ? d.count : 0) + ' ngày)';
+                label(ctx) {
+                  return ctx.label + ': ' + ctx.raw + '% (' + (counts[ctx.label] || 0) + ' ngày)';
                 }
               }
-            }
-          }
-        }
+            },
+          },
+        },
       });
+      // Summary text bên dưới
+      const buyPct = total > 0 ? Math.round((counts['BUY'] || 0) / total * 100) : 0;
+      document.getElementById('donut-summary').textContent =
+        total > 0 ? (counts['BUY'] || 0) + ' ngày BUY · ' + (counts['NOT_BUY'] || 0) + ' ngày NOT_BUY' : '';
     }
 
-    async function load() {
-      const goldCode = document.getElementById('gold-code').value || '';
-      setLatest({}, goldCode || null, _labels, []);
-      clearError();
-      document.getElementById('latest-prediction').textContent = 'Đang tải...';
-      document.getElementById('latest-prediction').className = 'prediction-badge loading';
-
-      try {
-        const url = goldCode ? '/api/predict?gold_code=' + encodeURIComponent(goldCode) : '/api/predict';
-        const r = await fetch(url);
-        const data = await r.json();
-        if (!r.ok) {
-          showError(data.error || 'Lỗi API');
-          return;
-        }
-        if (Array.isArray(data.labels) && data.labels.length > 0) {
-          _labels = data.labels;
-        }
-        const modePill = document.getElementById('mode-pill');
-        modePill.textContent = 'Chế độ: ' + (_labels.join(' / '));
-        setLatest(data.latest || {}, data.gold_code || null, data.labels, data.predictions);
-        drawChart(data);
-        drawDonut(data.predictions || [], data.labels || _labels);
-        drawFeatureCharts(data);
-      } catch (e) {
-        showError('Không kết nối được server. Chạy: python frontend/app.py');
-      }
-    }
-
+    // ── Feature charts (kỹ thuật, ẩn mặc định) ────────────────────────────────
     function drawFeatureCharts(data) {
-      var dates = data.dates || [];
-      var features = data.features || {};
-      var hasPremium = features.premium_pct && features.premium_pct.length;
-      var hasWorld = features.world_price_vnd && features.world_price_vnd.length;
-      var hasRsi = features.RSI_14 && features.RSI_14.length;
-      var hasReturn3 = features.cum_return_3d_pct && features.cum_return_3d_pct.length;
-      var hasReturn7 = features.cum_return_7d_pct && features.cum_return_7d_pct.length;
+      const dates = data.dates || [];
+      const features = data.features || {};
+      const labels = dates.map(d => (d || '').slice(0, 10));
+      const gridOpt = { color: 'rgba(255,255,255,0.06)' };
+      const ticksOpt = { color: '#94a3b8', maxTicksLimit: 12 };
 
-      var labels = dates.map(function (d) { return (d || '').slice(0, 10); });
-      var gridOpt = { color: 'rgba(255,255,255,0.06)' };
-      var ticksOpt = { color: '#94a3b8', maxTicksLimit: 12 };
-
+      const hasPremium = features.premium_pct && features.premium_pct.length;
+      const hasWorld = features.world_price_vnd && features.world_price_vnd.length;
       if (hasPremium || hasWorld) {
-        var canvasPremium = document.getElementById('feature-premium-chart');
-        if (canvasPremium) {
+        const el = document.getElementById('feature-premium-chart');
+        if (el) {
           if (featurePremiumChart) featurePremiumChart.destroy();
-          var ds = [];
+          const ds = [];
           if (hasPremium) ds.push({ label: 'Premium nội địa (%)', data: features.premium_pct, borderColor: '#a78bfa', backgroundColor: 'rgba(167,139,250,0.15)', fill: true, tension: 0.2, pointRadius: 0, yAxisID: 'yPct' });
-          if (hasWorld) ds.push({ label: 'Giá TG quy VND (tr)', data: features.world_price_vnd.map(function (v) { return v != null ? v / 1e6 : null; }), borderColor: '#38bdf8', backgroundColor: 'rgba(56,189,248,0.1)', fill: true, tension: 0.2, pointRadius: 0, yAxisID: 'yVnd' });
-          featurePremiumChart = new Chart(canvasPremium.getContext('2d'), {
-            type: 'line',
-            data: { labels: labels, datasets: ds },
+          if (hasWorld) ds.push({ label: 'Giá TG quy VND (tr)', data: features.world_price_vnd.map(v => v != null ? v / 1e6 : null), borderColor: '#38bdf8', backgroundColor: 'rgba(56,189,248,0.1)', fill: true, tension: 0.2, pointRadius: 0, yAxisID: 'yVnd' });
+          featurePremiumChart = new Chart(el.getContext('2d'), {
+            type: 'line', data: { labels, datasets: ds },
             options: {
-              responsive: true,
-              maintainAspectRatio: false,
+              responsive: true, maintainAspectRatio: false,
               interaction: { intersect: false, mode: 'index' },
               scales: {
                 x: { ticks: ticksOpt, grid: gridOpt },
-                yPct: { type: 'linear', position: 'left', title: { display: true, text: 'Premium (%)', color: '#94a3b8' }, ticks: Object.assign({}, ticksOpt, { callback: function (v) { return v + '%'; } }), grid: gridOpt },
+                yPct: { type: 'linear', position: 'left', title: { display: true, text: 'Premium (%)', color: '#94a3b8' }, ticks: { ...ticksOpt, callback: v => v + '%' }, grid: gridOpt },
                 yVnd: { type: 'linear', position: 'right', title: { display: true, text: 'VND (triệu)', color: '#94a3b8' }, ticks: ticksOpt, grid: { drawOnChartArea: false } },
               },
               plugins: { legend: { position: 'top' } },
@@ -823,84 +992,176 @@
         }
       }
 
-      if (hasRsi || hasReturn3 || hasReturn7) {
-        var canvasRsi = document.getElementById('feature-rsi-chart');
-        if (canvasRsi) {
+      const hasRsi = features.RSI_14 && features.RSI_14.length;
+      const hasR3 = features.cum_return_3d_pct && features.cum_return_3d_pct.length;
+      const hasR7 = features.cum_return_7d_pct && features.cum_return_7d_pct.length;
+      if (hasRsi || hasR3 || hasR7) {
+        const el = document.getElementById('feature-rsi-chart');
+        if (el) {
           if (featureRsiChart) featureRsiChart.destroy();
-          var ds = [];
+          const ds = [];
           if (hasRsi) ds.push({ label: 'RSI 14 ngày', data: features.RSI_14, borderColor: '#f472b6', backgroundColor: 'rgba(244,114,182,0.1)', fill: true, tension: 0.2, pointRadius: 0, yAxisID: 'yRsi' });
-          if (hasReturn3) ds.push({ label: 'Lợi nhuận 3D (%)', data: features.cum_return_3d_pct, borderColor: '#67e8f9', tension: 0.2, pointRadius: 0, yAxisID: 'yRet' });
-          if (hasReturn7) ds.push({ label: 'Lợi nhuận 7D (%)', data: features.cum_return_7d_pct, borderColor: '#4ade80', tension: 0.2, pointRadius: 0, yAxisID: 'yRet' });
-          featureRsiChart = new Chart(canvasRsi.getContext('2d'), {
-            type: 'line',
-            data: { labels: labels, datasets: ds },
+          if (hasR3) ds.push({ label: 'Lợi nhuận 3D (%)', data: features.cum_return_3d_pct, borderColor: '#67e8f9', tension: 0.2, pointRadius: 0, yAxisID: 'yRet' });
+          if (hasR7) ds.push({ label: 'Lợi nhuận 7D (%)', data: features.cum_return_7d_pct, borderColor: '#4ade80', tension: 0.2, pointRadius: 0, yAxisID: 'yRet' });
+          // Đường tham chiếu RSI 30/70
+          const rsiRef = Array(labels.length);
+          featureRsiChart = new Chart(el.getContext('2d'), {
+            type: 'line', data: { labels, datasets: ds },
             options: {
-              responsive: true,
-              maintainAspectRatio: false,
+              responsive: true, maintainAspectRatio: false,
               interaction: { intersect: false, mode: 'index' },
               scales: {
                 x: { ticks: ticksOpt, grid: gridOpt },
                 yRsi: { type: 'linear', position: 'left', min: 0, max: 100, title: { display: true, text: 'RSI', color: '#94a3b8' }, ticks: ticksOpt, grid: gridOpt },
-                yRet: { type: 'linear', position: 'right', title: { display: true, text: 'Lợi nhuận (%)', color: '#94a3b8' }, ticks: Object.assign({}, ticksOpt, { callback: function (v) { return v + '%'; } }), grid: { drawOnChartArea: false } },
+                yRet: { type: 'linear', position: 'right', title: { display: true, text: 'Lợi nhuận (%)', color: '#94a3b8' }, ticks: { ...ticksOpt, callback: v => v + '%' }, grid: { drawOnChartArea: false } },
               },
-              plugins: { legend: { position: 'top' } },
+              plugins: {
+                legend: { position: 'top' },
+                annotation: undefined,
+              },
             },
           });
         }
       }
     }
 
+    // ── Collapsible toggle ─────────────────────────────────────────────────────
+    function toggleTech() {
+      const btn = document.getElementById('tech-toggle');
+      const content = document.getElementById('tech-content');
+      btn.classList.toggle('open');
+      content.classList.toggle('open');
+      // Resize charts khi mở để render đúng
+      if (content.classList.contains('open')) {
+        setTimeout(() => {
+          if (featurePremiumChart) featurePremiumChart.resize();
+          if (featureRsiChart) featureRsiChart.resize();
+        }, 50);
+      }
+    }
+
+    // ── Load chính ─────────────────────────────────────────────────────────────
+    async function load() {
+      const goldCode = document.getElementById('gold-code').value || '';
+      setLatest({}, goldCode || null, _labels, [], []);
+      clearError();
+      document.getElementById('latest-prediction').textContent = 'Đang tải...';
+      document.getElementById('latest-prediction').className = 'prediction-badge loading';
+
+      try {
+        const url = goldCode
+          ? '/api/predict?gold_code=' + encodeURIComponent(goldCode)
+          : '/api/predict';
+        const r = await fetch(url);
+        const data = await r.json();
+        if (!r.ok) { showError(data.error || 'Lỗi API'); return; }
+        if (Array.isArray(data.labels) && data.labels.length > 0) _labels = data.labels;
+        document.getElementById('mode-pill').textContent = _labels.join(' / ');
+        setLatest(
+          data.latest || {},
+          data.gold_code || null,
+          data.labels,
+          data.predictions,
+          data.probabilities,
+        );
+        drawChart(data);
+        drawDonut(data.predictions || [], data.labels || _labels);
+        drawFeatureCharts(data);
+      } catch (e) {
+        showError('Không kết nối được server. Chạy: python frontend/app.py');
+      }
+    }
+
+    // ── Gold codes dropdown (load động) ───────────────────────────────────────
+    async function loadGoldCodes() {
+      try {
+        const r = await fetch('/api/gold_codes');
+        if (!r.ok) return;
+        const data = await r.json();
+        const sel = document.getElementById('gold-code');
+        (data.gold_codes || data || []).forEach(code => {
+          const opt = document.createElement('option');
+          opt.value = code;
+          opt.textContent = code;
+          sel.appendChild(opt);
+        });
+      } catch (e) { }
+    }
+
+    // ── Date detail modal ──────────────────────────────────────────────────────
     function openDateDetail(dateStr) {
       const modal = document.getElementById('date-detail-modal');
       const title = document.getElementById('date-detail-title');
       const meta = document.getElementById('date-detail-meta');
       const newsEl = document.getElementById('date-detail-news');
-      const supplementEl = document.getElementById('date-detail-supplement');
-      const loadingEl = document.getElementById('date-detail-loading');
+      const suppEl = document.getElementById('date-detail-supplement');
+      const loadEl = document.getElementById('date-detail-loading');
       title.textContent = 'Chi tiết ngày ' + dateStr;
-      meta.textContent = 'Đang tải tin tức và dự đoán bổ sung...';
+      meta.textContent = 'Đang tải...';
       newsEl.innerHTML = '';
-      supplementEl.style.display = 'none';
-      loadingEl.style.display = 'block';
+      suppEl.style.display = 'none';
+      loadEl.style.display = 'block';
       modal.classList.add('show');
       modal.setAttribute('aria-hidden', 'false');
 
       const goldCode = document.getElementById('gold-code').value || '';
       let url = '/api/date-detail?date=' + encodeURIComponent(dateStr);
       if (goldCode) url += '&gold_code=' + encodeURIComponent(goldCode);
+
       fetch(url)
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-          loadingEl.style.display = 'none';
-          if (data.error && !data.date) {
-            meta.textContent = data.error;
-            return;
-          }
-          meta.textContent = 'Giá: ' + (data.price != null ? Number(data.price).toLocaleString('vi-VN') + ' VND' : '—') + ' · Dự đoán ML: ' + (data.ml_prediction || '—');
+        .then(r => r.json())
+        .then(data => {
+          loadEl.style.display = 'none';
+          if (data.error && !data.date) { meta.textContent = data.error; return; }
+          const price = data.price != null ? fmt(data.price) + ' VND' : '—';
+          meta.textContent = 'Giá: ' + price + ' · Dự đoán ML: ' + (data.ml_prediction || '—');
+
           newsEl.innerHTML = '';
-          (data.news || []).forEach(function (n) {
-            const div = document.createElement('div');
-            div.className = 'news-item';
-            div.innerHTML = '<strong>' + (n.title || '').replace(/</g, '&lt;') + '</strong>' + (n.snippet ? '<br><span style="color:#94a3b8;">' + (n.snippet || '').slice(0, 200).replace(/</g, '&lt;') + '</span>' : '');
-            newsEl.appendChild(div);
-          });
-          if (!(data.news || []).length) {
+          if ((data.news || []).length) {
+            data.news.forEach(n => {
+              const d = document.createElement('div');
+              d.className = 'news-item';
+              const titleSafe = (n.title || '').replace(/</g, '&lt;');
+              const snippetSafe = (n.snippet || '').slice(0, 200).replace(/</g, '&lt;');
+              const urlHref = n.url ? `<a href="${n.url}" target="_blank" rel="noopener" style="color:#60a5fa;font-size:0.78rem;">↗ Đọc thêm</a>` : '';
+              const srcDate = [n.source, (n.published || '').slice(0, 10)].filter(Boolean).join(' · ');
+              d.innerHTML = `<strong>${titleSafe}</strong>` +
+                `<div style="color:#64748b;font-size:0.78rem;margin:2px 0;">${srcDate}</div>` +
+                (snippetSafe ? `<div style="color:#94a3b8;">${snippetSafe}</div>` : '') +
+                (urlHref ? `<div style="margin-top:4px;">${urlHref}</div>` : '');
+              newsEl.appendChild(d);
+            });
+          } else {
             newsEl.innerHTML = '<p class="news-item" style="color:#94a3b8;">Không có tin nào trong 48h gần đây.</p>';
           }
+
           const sup = data.llm_supplement;
           if (sup) {
-            supplementEl.style.display = 'block';
-            document.getElementById('date-detail-signal').textContent = sup.adjusted_signal || '—';
-            document.getElementById('date-detail-signal').className = 'prediction-badge ' + predClass(sup.adjusted_signal || '');
+            suppEl.style.display = 'block';
+            const sigEl = document.getElementById('date-detail-signal');
+            sigEl.textContent = sup.adjusted_signal || '—';
+            sigEl.className = 'prediction-badge ' + predClass(sup.adjusted_signal || '');
+            document.getElementById('date-detail-confidence').textContent =
+              sup.confidence != null ? Math.round(sup.confidence * 100) + '% tin cậy' : '';
             document.getElementById('date-detail-reasoning').textContent = sup.reasoning || '—';
-            document.getElementById('date-detail-confidence').textContent = (sup.confidence != null) ? (Math.round(sup.confidence * 100) + '%') : '—';
             document.getElementById('date-detail-price-note').textContent = sup.updated_price_note || '—';
+            const riskEl = document.getElementById('date-detail-risk');
+            riskEl.textContent = sup.key_risk ? ('⚠ ' + sup.key_risk) : '';
+            riskEl.style.display = sup.key_risk ? 'inline-block' : 'none';
+
+            // Cập nhật reasoning trong signal card nếu là ngày mới nhất
+            const latest = _chartDates[_chartDates.length - 1];
+            if (dateStr === latest && sup.reasoning) {
+              document.getElementById('signal-reasoning-text').textContent = sup.reasoning;
+              document.getElementById('signal-reasoning-text').style.fontStyle = 'normal';
+              document.getElementById('signal-reasoning-text').style.color = '#cbd5e1';
+            }
           } else {
-            supplementEl.style.display = 'none';
+            suppEl.style.display = 'none';
           }
         })
-        .catch(function () {
-          loadingEl.style.display = 'none';
+        .catch(() => {
+          loadEl.style.display = 'none';
           meta.textContent = 'Không tải được dữ liệu. Kiểm tra kết nối và API key.';
         });
     }
@@ -910,18 +1171,16 @@
       modal.classList.remove('show');
       modal.setAttribute('aria-hidden', 'true');
     }
-
     (function wireDateDetailModal() {
-      const closeBtn = document.getElementById('date-detail-close');
-      const overlay = document.getElementById('date-detail-modal');
-      if (closeBtn) closeBtn.addEventListener('click', closeDateDetailModal);
-      if (overlay) overlay.addEventListener('click', function (e) { if (e.target === overlay) closeDateDetailModal(); });
+      document.getElementById('date-detail-close')
+        ?.addEventListener('click', closeDateDetailModal);
+      document.getElementById('date-detail-modal')
+        ?.addEventListener('click', e => { if (e.target.id === 'date-detail-modal') closeDateDetailModal(); });
     })();
 
-    // ─── Macro chart ────────────────────────────────────────────────
+    // ── Macro chart ────────────────────────────────────────────────────────────
     const macroCtx = document.getElementById('macro-chart').getContext('2d');
-    let macroChart = null;
-    let _macroData = null;
+    let macroChart = null, _macroData = null;
 
     const MACRO_DATASETS_CFG = [
       { key: 'fed_rate', label: 'Lãi suất FED (%)', color: '#f59e0b', yAxis: 'yRate', tog: 'tog-fed', order: 1 },
@@ -933,44 +1192,33 @@
     function buildMacroChart(data) {
       if (macroChart) macroChart.destroy();
       const labels = (data.dates || []).map(d => d.slice(0, 10));
-      const datasets = [];
-      const allVisible = {};
-
-      MACRO_DATASETS_CFG.forEach(cfg => {
-        const vals = data[cfg.key] || [];
-        if (!vals.length) return;
-        const el = document.getElementById(cfg.tog);
-        const visible = el ? el.checked : true;
-        allVisible[cfg.key] = true;
-        datasets.push({
-          label: cfg.label,
-          data: vals,
-          borderColor: cfg.color,
-          backgroundColor: cfg.color + '22',
-          fill: cfg.key === 'fed_rate',
-          tension: 0.2,
-          pointRadius: 0,
-          pointHoverRadius: 4,
-          yAxisID: cfg.yAxis,
-          order: cfg.order,
-          hidden: !visible,
-          borderWidth: cfg.key === 'fed_rate' ? 2.5 : 1.5,
-          borderDash: cfg.key === 'vn_rate' ? [5, 3] : [],
+      const datasets = MACRO_DATASETS_CFG
+        .filter(cfg => (data[cfg.key] || []).length > 0)
+        .map(cfg => {
+          const el = document.getElementById(cfg.tog);
+          return {
+            label: cfg.label, data: data[cfg.key],
+            borderColor: cfg.color, backgroundColor: cfg.color + '22',
+            fill: cfg.key === 'fed_rate', tension: 0.2,
+            pointRadius: 0, pointHoverRadius: 4,
+            yAxisID: cfg.yAxis, order: cfg.order,
+            hidden: el ? !el.checked : false,
+            borderWidth: cfg.key === 'fed_rate' ? 2.5 : 1.5,
+            borderDash: cfg.key === 'vn_rate' ? [5, 3] : [],
+          };
         });
-      });
 
       macroChart = new Chart(macroCtx, {
         type: 'line',
         data: { labels, datasets },
         options: {
-          responsive: true,
-          maintainAspectRatio: false,
+          responsive: true, maintainAspectRatio: false,
           interaction: { intersect: false, mode: 'index' },
           plugins: {
             legend: { display: false },
             tooltip: {
               callbacks: {
-                label: function (ctx) {
+                label(ctx) {
                   const v = ctx.raw;
                   const cfg = MACRO_DATASETS_CFG.find(c => c.label === ctx.dataset.label);
                   if (!cfg) return ctx.dataset.label + ': ' + v;
@@ -983,26 +1231,11 @@
           },
           scales: {
             x: { title: { display: true, text: 'Ngày' }, ticks: { maxTicksLimit: 12, color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-            yRate: {
-              type: 'linear', position: 'left',
-              title: { display: true, text: 'Lãi suất (%)', color: '#94a3b8' },
-              ticks: { color: '#f59e0b', callback: v => v.toFixed(2) + '%' },
-              grid: { color: 'rgba(255,255,255,0.05)' },
-            },
-            yDXY: {
-              type: 'linear', position: 'right',
-              title: { display: true, text: 'DXY / Gold USD', color: '#94a3b8' },
-              ticks: { color: '#38bdf8' },
-              grid: { drawOnChartArea: false },
-            },
-            yGold: {
-              type: 'linear', position: 'right',
-              display: false,
-              ticks: { color: '#4ade80' },
-              grid: { drawOnChartArea: false },
-            },
-          }
-        }
+            yRate: { type: 'linear', position: 'left', title: { display: true, text: 'Lãi suất (%)', color: '#94a3b8' }, ticks: { color: '#f59e0b', callback: v => v.toFixed(2) + '%' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+            yDXY: { type: 'linear', position: 'right', title: { display: true, text: 'DXY', color: '#94a3b8' }, ticks: { color: '#38bdf8' }, grid: { drawOnChartArea: false } },
+            yGold: { type: 'linear', position: 'right', display: true, title: { display: true, text: 'USD/oz', color: '#94a3b8' }, ticks: { color: '#4ade80' }, grid: { drawOnChartArea: false } },
+          },
+        },
       });
     }
 
@@ -1024,16 +1257,15 @@
         _macroData = data;
         buildMacroChart(data);
         MACRO_DATASETS_CFG.forEach(cfg => {
-          const el = document.getElementById(cfg.tog);
-          if (el) el.addEventListener('change', toggleMacroSeries);
+          document.getElementById(cfg.tog)?.addEventListener('change', toggleMacroSeries);
         });
       } catch (e) { }
     }
-    // ─────────────────────────────────────────────────────────────────
 
+    // ── Init ───────────────────────────────────────────────────────────────────
     (async function init() {
-      const sel = document.getElementById('gold-code');
-      if (sel) sel.addEventListener('change', load);
+      await loadGoldCodes();
+      document.getElementById('gold-code').addEventListener('change', load);
       load();
       loadMacro();
     })();

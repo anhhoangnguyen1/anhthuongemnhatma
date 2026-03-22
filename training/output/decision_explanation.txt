@@ -1,0 +1,68 @@
+==============================================================
+  TIN HIEU MOI NHAT — 2026-03-22
+==============================================================
+  Ma dai dien : SJL1L10
+  Tin hieu    : BUY
+  P(BUY)      : 92.9%
+  Nguong      : 0.15  (P >= 0.15 → BUY)
+  Tieu chi BUY: gia tang > 0.5% sau 7 ngay toi
+
+--------------------------------------------------------------
+  CAU TRA LOI: DUA VAO DAU DE DU DOAN?
+--------------------------------------------------------------
+
+  Model XGBoost su dung 46 features, chia thanh 5 nhom:
+
+  [1] XU HUONG GIA (momentum) — 'Da tang hay giam?'
+         Loi nhuan 3 ngay: giam 2.56%
+         Loi nhuan 7 ngay: giam 6.35%
+         Loi nhuan 14 ngay: giam 7.57%
+
+  [2] CHI SO KY THUAT — 'Qua mua hay qua ban?'
+     RSI 14 ngay = 19.8  (oversold nang → co the tang)
+     Gia vs MA20: duoi 6.22%
+     Gia vs MA50: duoi 5.76%
+
+  [3] PREMIUM SJC — 'NHNN co dang can thiep?'
+         Premium hien tai (%): 83.96
+         Xu huong premium 7 ngay: -40338089.87
+         Premium vs MA7: -11.83
+     !! Premium thu hep nhanh → NHNN co the dang can thiep
+
+  [4] VI MO — 'The gioi anh huong the nao?'
+         Vang TG 5 ngay: +0.78%
+         USD/VND 7 ngay: -0.08%
+         DXY 5 ngay: -0.41%
+     FED rate: 3.75%
+     Lai suat VN: 4.92%
+
+  [5] MUA VU — 'Dac thu thi truong VN?'
+     Khong co yeu to mua vu dac biet
+
+--------------------------------------------------------------
+  TOP 10 FEATURES MODEL CHU Y NHAT (theo importance)
+--------------------------------------------------------------
+  Hang  Feature                          Importance  Gia tri hom nay
+   1.   is_tet                               0.1136    0.000
+   2.   premium_pct                          0.0507    N/A
+   3.   price_to_MA50_pct                    0.0485    -5.761
+   4.   premium_pct_raw                      0.0376    83.959
+   5.   vol_14d                              0.0376    1.395
+   6.   is_mid_year                          0.0374    0.000
+   7.   spread_pct                           0.0365    N/A
+   8.   fed_rate                             0.0360    3.750
+   9.   is_than_tai                          0.0357    0.000
+  10.   month                                0.0339    3.000
+
+==============================================================
+  KET LUAN
+==============================================================
+  >> TIN HIEU: BUY (P = 92.9%)
+     Du doan: gia vang co the TANG > 0.5% trong 7 ngay toi.
+     Tuy nhien: precision ~50% — cu 2 tin hieu BUY thi 1 dung 1 sai.
+     Nen ket hop voi tin tuc NHNN va vang the gioi truoc khi mua.
+
+  LUU Y: Day chi la tin hieu ho tro quyet dinh (DSS),
+  khong phai loi khuyen dau tu. Ket hop voi phan doan
+  ca nhan va thong tin thi truong thuc te.
+==============================================================

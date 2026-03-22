@@ -1,0 +1,52 @@
+# step9_feature_importance.csv
+# Feature importance (gain). Cao = model chu y nhieu hon khi quyet dinh.
+# Shape: 46 dong x 3 cot
+# Cot dau: rank, feature, importance
+#
+rank,feature,importance
+1,is_tet,0.11356237
+2,premium_pct,0.050718326
+3,price_to_MA50_pct,0.048473936
+4,premium_pct_raw,0.037572745
+5,vol_14d,0.037551392
+6,is_mid_year,0.0374257
+7,spread_pct,0.036540583
+8,fed_rate,0.036026143
+9,is_than_tai,0.035714537
+10,month,0.03386305
+11,usd_vnd_rate,0.033596147
+12,price_to_MA20_pct,0.032958142
+13,interest_rate_state,0.03187664
+14,interest_rate_market,0.02835743
+15,vol_5d,0.026240887
+16,dxy_chg_5d,0.023757959
+17,premium_vs_ma7,0.023423187
+18,dxy_index,0.022826286
+19,usdvnd_chg_14d,0.022778196
+20,RSI_14,0.022474611
+21,premium_trend_7d,0.02205988
+22,cum_return_14d,0.02158001
+23,price_to_MA5_pct,0.020428684
+24,world_ret,0.020246375
+25,world_chg_14d,0.019807938
+26,rate_chg_30d,0.019569267
+27,rsi_chg_7d,0.019491473
+28,cum_return_3d,0.019394012
+29,cum_return_7d,0.01898245
+30,usdvnd_chg_7d,0.017686471
+31,rsi_chg_3d,0.016595254
+32,world_chg_5d,0.014674959
+33,daily_ret,0.0129018705
+34,rate_chg_7d,0.0123069035
+35,is_q4,0.008536244
+36,gold_code_BT9999NTT,0.0
+37,gold_code_BTSJC,0.0
+38,gold_code_DOHCML,0.0
+39,gold_code_DOHNL,0.0
+40,gold_code_DOJINHTV,0.0
+41,gold_code_PQHN24NTT,0.0
+42,gold_code_PQHNVM,0.0
+43,gold_code_SJ9999,0.0
+44,gold_code_SJL1L10,0.0
+45,gold_code_VIETTINMSJC,0.0
+46,gold_code_VNGSJC,0.0

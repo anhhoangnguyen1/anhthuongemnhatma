@@ -1,28 +1,27 @@
-XGBoost Gold VN — Kết quả đánh giá (test set)
+XGBoost Gold VN — Ket qua danh gia (test set)
 ====================================================
-Threshold tối ưu : 0.15
-F1-macro         : 0.5613
-F1-weighted      : 0.5672
-BUY Precision    : 0.4791  (3199/6677 tín hiệu BUY đúng)
-BUY Recall       : 0.5841  (bắt được 3199/5477 cơ hội thực)
+Threshold toi uu : 0.15
+F1-macro         : 0.5380
+F1-weighted      : 0.5505
+BUY Precision    : 0.4583  (2580/5630 tin hieu BUY dung)
+BUY Recall       : 0.4711  (bat duoc 2580/5477 co hoi thuc)
 
 Classification report:
               precision    recall  f1-score   support
 
-     NOT_BUY       0.65      0.55      0.60      7726
-         BUY       0.48      0.58      0.53      5477
+     NOT_BUY       0.62      0.61      0.61      7728
+         BUY       0.46      0.47      0.46      5477
 
-    accuracy                           0.56     13203
-   macro avg       0.57      0.57      0.56     13203
-weighted avg       0.58      0.56      0.57     13203
+    accuracy                           0.55     13205
+   macro avg       0.54      0.54      0.54     13205
+weighted avg       0.55      0.55      0.55     13205
 
-Confusion matrix (hàng=thực tế, cột=dự đoán):
+Confusion matrix (hang=thuc te, cot=du doan):
                   NOT_BUY    BUY
-  Thực tế NOT_BUY    4248    3478
-  Thực tế BUY        2278    3199
+  Thuc te NOT_BUY    4678    3050
+  Thuc te BUY        2897    2580
 
-Giải thích:
-  TN= 4248  Nói NOT_BUY đúng  (tránh mua lúc không tốt)
-  FP= 3478  Nói BUY sai       (báo mua nhưng giá không tăng)
-  FN= 2278  Bỏ lỡ BUY tốt    (không mua khi đáng mua)
-  TP= 3199  Nói BUY đúng      (mua vào, giá tăng đúng dự đoán)
+  TN= 4678  Noi NOT_BUY dung
+  FP= 3050  Bao mua nhung gia khong tang
+  FN= 2897  Bo lo co hoi mua
+  TP= 2580  Noi BUY dung, gia tang
