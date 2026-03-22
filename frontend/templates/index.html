@@ -527,6 +527,178 @@
       border-radius: 10px;
       border-left: 4px solid var(--accent);
     }
+
+    /* ── Advisory Panel ── */
+    .advisory-panel {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+      border: 1px solid var(--card-border);
+      box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.25);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .advisory-panel::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      border-radius: 16px 16px 0 0;
+    }
+
+    .advisory-panel.strong_buy::before { background: linear-gradient(90deg, #16a34a, #22c55e); }
+    .advisory-panel.buy::before        { background: linear-gradient(90deg, #22c55e, #4ade80); }
+    .advisory-panel.watch::before      { background: linear-gradient(90deg, #eab308, #facc15); }
+    .advisory-panel.avoid::before      { background: linear-gradient(90deg, #ef4444, #f87171); }
+
+    .advisory-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .advisory-header h2 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .advisory-timestamp {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .advisory-badge {
+      display: inline-block;
+      font-size: 1.35rem;
+      font-weight: 700;
+      padding: 0.6rem 1.5rem;
+      border-radius: 12px;
+      margin-bottom: 0.75rem;
+      letter-spacing: 0.02em;
+    }
+
+    .advisory-badge.strong_buy { background: rgba(22, 163, 74, 0.25); color: #86efac; }
+    .advisory-badge.buy        { background: rgba(34, 197, 94, 0.25); color: #86efac; }
+    .advisory-badge.watch      { background: rgba(234, 179, 8, 0.25); color: #fde047; }
+    .advisory-badge.avoid      { background: rgba(239, 68, 68, 0.25); color: #fca5a5; }
+
+    .advisory-sublabel {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .advisory-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+    }
+
+    @media (max-width: 700px) {
+      .advisory-body { grid-template-columns: 1fr; }
+    }
+
+    .advisory-reasons {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .advisory-reasons li {
+      padding: 0.4rem 0;
+      font-size: 0.88rem;
+      color: #cbd5e1;
+      line-height: 1.5;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .advisory-reasons li::before {
+      content: '•';
+      color: var(--accent);
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .advisory-right {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .advisory-outlook-box {
+      background: rgba(99, 102, 241, 0.08);
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      border-left: 3px solid var(--accent);
+    }
+
+    .advisory-outlook-box .outlook-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #a5b4fc;
+      margin-bottom: 0.35rem;
+    }
+
+    .advisory-outlook-box .outlook-value {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .advisory-conf-bar {
+      height: 8px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .advisory-conf-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.6s ease;
+    }
+
+    .advisory-disclaimer {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--card-border);
+      margin-top: 1rem;
+      line-height: 1.5;
+    }
+
+    /* ── Skeleton shimmer ── */
+    @keyframes shimmer {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.8; }
+    }
+
+    .skeleton-rect {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      animation: shimmer 1s ease-in-out infinite;
+    }
+
+    .skeleton-line {
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 6px;
+      animation: shimmer 1s ease-in-out infinite;
+    }
   </style>
 </head>
 
@@ -546,10 +718,53 @@
   <!-- ── Selector ── -->
   <div class="card" style="padding:1rem 1.5rem;margin-bottom:1.25rem;">
     <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
-      <span style="font-size:0.9rem;color:var(--text-muted);font-weight:500;">Chọn mã vàng</span>
-      <select id="gold-code" class="gold-code-select" title="Chọn mã vàng">
-        <option value="">Trung bình tất cả</option>
+      <span style="font-size:0.9rem;color:var(--text-muted);font-weight:500;">Chọn loại vàng</span>
+      <select id="gold-code" class="gold-code-select" title="Chọn loại vàng">
+        <option value="">Trung bình tất cả loại vàng</option>
       </select>
+    </div>
+  </div>
+
+  <!-- ── Advisory Panel: Lời khuyên đầu tư ── -->
+  <div class="advisory-panel" id="advisory-panel">
+    <div class="advisory-header">
+      <h2>💡 Lời khuyên đầu tư</h2>
+      <span class="advisory-timestamp" id="adv-timestamp">Đang tải...</span>
+    </div>
+    <!-- Skeleton loading -->
+    <div id="adv-skeleton">
+      <div class="skeleton-rect" style="height:48px;width:220px;margin-bottom:12px;"></div>
+      <div class="skeleton-line" style="height:12px;width:80%;margin-bottom:8px;"></div>
+      <div class="skeleton-line" style="height:12px;width:65%;margin-bottom:8px;"></div>
+      <div class="skeleton-line" style="height:12px;width:70%;margin-bottom:12px;"></div>
+      <div class="skeleton-rect" style="height:8px;width:100%;"></div>
+    </div>
+    <!-- Real content (hidden until loaded) -->
+    <div id="adv-content" style="display:none;">
+      <div id="adv-badge" class="advisory-badge">--</div>
+      <div class="advisory-sublabel" id="adv-sublabel"></div>
+      <div class="advisory-body">
+        <div>
+          <ul class="advisory-reasons" id="adv-reasons"></ul>
+        </div>
+        <div class="advisory-right">
+          <div class="advisory-outlook-box">
+            <div class="outlook-label">Xu hướng giá 7 ngày</div>
+            <div class="outlook-value" id="adv-outlook">--</div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+              <span style="font-size:0.75rem;color:var(--text-muted);">Độ tin cậy tổng hợp</span>
+              <span style="font-size:0.75rem;font-weight:600;" id="adv-conf-pct">--%</span>
+            </div>
+            <div class="advisory-conf-bar">
+              <div class="advisory-conf-fill" id="adv-conf-fill" style="width:0%;"></div>
+            </div>
+          </div>
+          <div id="adv-suggested" style="font-size:0.85rem;color:#cbd5e1;font-style:italic;"></div>
+        </div>
+      </div>
+      <div class="advisory-disclaimer" id="adv-disclaimer"></div>
     </div>
   </div>
 
@@ -561,14 +776,14 @@
       <div class="extra" id="metric-date">--</div>
     </div>
     <div class="metric-card">
-      <div class="label">Mã vàng</div>
-      <div class="value purple" id="metric-gold-code">Trung bình tất cả</div>
-      <div class="extra" id="gold-code-hint">Chọn mã để xem chi tiết</div>
+      <div class="label">Loại vàng</div>
+      <div class="value purple" id="metric-gold-code">Tất cả loại</div>
+      <div class="extra" id="gold-code-hint">Chọn loại để xem chi tiết</div>
     </div>
     <div class="metric-card">
-      <div class="label">Tín hiệu BUY (90 ngày)</div>
+      <div class="label">Tín hiệu MUA (90 ngày)</div>
       <div class="value amber" id="metric-distribution">--</div>
-      <div class="extra" id="metric-distribution-detail">BUY / NOT_BUY</div>
+      <div class="extra" id="metric-distribution-detail">Nên mua / Chưa nên</div>
     </div>
   </div>
 
@@ -576,7 +791,7 @@
   <div class="signal-card" id="signal-card">
     <!-- Cột 1: badge + confidence -->
     <div class="signal-main">
-      <div class="label">Dự đoán mới nhất</div>
+      <div class="label">Tín hiệu kỹ thuật mới nhất</div>
       <div class="signal-badge-wrap">
         <span id="latest-prediction" class="prediction-badge na">--</span>
       </div>
@@ -585,16 +800,16 @@
           <div class="conf-fill" id="conf-bar-fill" style="width:0%;background:#22c55e;"></div>
         </div>
         <span id="conf-label">--</span>
-        <span style="color:#64748b;">xác suất BUY</span>
+        <span style="color:#64748b;">độ tin cậy</span>
       </div>
       <div class="extra" id="latest-pred-date" style="margin-top:0.4rem;"></div>
     </div>
 
     <!-- Cột 2: lý do (LLM hoặc placeholder) -->
     <div class="signal-reasoning" id="signal-reasoning-box">
-      <div class="reason-label">Lý do / tin tức ảnh hưởng</div>
-      <p id="signal-reasoning-text" style="color:#64748b;font-style:italic;">
-        Click vào điểm trên biểu đồ để xem phân tích tin tức chi tiết.
+      <div class="reason-label">📌 Ghi chú</div>
+      <p id="signal-reasoning-text" style="color:#94a3b8;font-size:0.88rem;line-height:1.6;">
+        Tín hiệu kỹ thuật chỉ là <b>1 yếu tố tham khảo</b>. Hãy xem <b>"Lời khuyên đầu tư"</b> ở trên để có nhận định tổng hợp từ cả phân tích kỹ thuật lẫn tin tức thị trường.
       </p>
     </div>
 
@@ -609,8 +824,8 @@
 
     <!-- Disclaimer -->
     <div class="signal-disclaimer">
-      ⚠️ Tín hiệu dựa trên pattern kỹ thuật 15 năm. Độ chính xác BUY ~50% trong giai đoạn test (F1=0.567).
-      Chỉ mang tính tham khảo — kết hợp với theo dõi chính sách NHNN và tin tức vĩ mô trước khi ra quyết định.
+      ⚠️ Tín hiệu chỉ mang tính tham khảo, dựa trên mô hình phân tích 15 năm dữ liệu giá vàng.
+      Vui lòng kết hợp với lời khuyên đầu tư ở trên và ý kiến chuyên gia trước khi quyết định.
     </div>
   </div>
 
@@ -795,14 +1010,15 @@
       const sel = document.getElementById('gold-code');
       const selText = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : '';
       document.getElementById('metric-gold-code').textContent =
-        goldCode ? (selText || goldCode) : 'Trung bình tất cả';
+        goldCode ? (selText || goldCode) : 'Tất cả loại';
       document.getElementById('gold-code-hint').textContent =
-        goldCode ? ('Mã: ' + (selText || goldCode)) : 'Chọn mã để xem chi tiết';
+        goldCode ? (selText || goldCode) : 'Chọn loại để xem chi tiết';
 
       const title = document.getElementById('chart-title');
+      const selName = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : '';
       title.textContent = goldCode
-        ? 'Giá vàng ' + goldCode + ' & dự đoán (90 ngày gần nhất)'
-        : 'Giá vàng & dự đoán (90 ngày gần nhất)';
+        ? 'Giá vàng ' + (selName || goldCode) + ' (90 ngày gần nhất)'
+        : 'Giá vàng tất cả loại (90 ngày gần nhất)';
 
       // Phân bố metric card
       const L = (labels && labels.length) ? labels : _labels;
@@ -815,9 +1031,10 @@
       const buyCount = counts['BUY'] || 0;
       const buyPct = total > 0 ? Math.round(buyCount / total * 100) : 0;
       document.getElementById('metric-distribution').textContent =
-        total > 0 ? buyPct + '% BUY' : '--';
+        total > 0 ? buyPct + '% Nên mua' : '--';
+      const labelMap = {'BUY': 'Nên mua', 'NOT_BUY': 'Chưa nên mua'};
       document.getElementById('metric-distribution-detail').textContent =
-        L.map(l => l + ': ' + (counts[l] || 0) + ' ngày').join(' · ');
+        L.map(l => (labelMap[l] || l) + ': ' + (counts[l] || 0) + ' ngày').join(' · ');
 
       // Confidence bar
       const latestProb = latest.prediction_date
@@ -1073,16 +1290,18 @@
     }
 
     // ── Gold codes dropdown (load động) ───────────────────────────────────────
+    let _goldNames = {}; // {code: Vietnamese name}
     async function loadGoldCodes() {
       try {
         const r = await fetch('/api/gold_codes');
         if (!r.ok) return;
         const data = await r.json();
         const sel = document.getElementById('gold-code');
+        _goldNames = data.gold_names || {};
         (data.gold_codes || data || []).forEach(code => {
           const opt = document.createElement('option');
           opt.value = code;
-          opt.textContent = code;
+          opt.textContent = _goldNames[code] || code;
           sel.appendChild(opt);
         });
       } catch (e) { }
@@ -1262,12 +1481,259 @@
       } catch (e) { }
     }
 
+    // ── Advisory Panel ──────────────────────────────────────────────────────────
+    async function loadAdvisory() {
+      const sel = document.getElementById('gold-code');
+      const goldCode = sel ? sel.value : 'SJC_BAR';
+      const panel = document.getElementById('advisory-panel');
+      const skeleton = document.getElementById('adv-skeleton');
+      const content = document.getElementById('adv-content');
+
+      // Show skeleton
+      skeleton.style.display = 'block';
+      content.style.display = 'none';
+      panel.className = 'advisory-panel';
+
+      try {
+        const url = '/api/advisory?gold_code=' + encodeURIComponent(goldCode || 'SJC_BAR');
+        const resp = await fetch(url);
+        const data = await resp.json();
+
+        // Badge
+        const badge = document.getElementById('adv-badge');
+        const rec = data.final_recommendation || 'WATCH';
+        const recClass = rec.toLowerCase();
+        badge.textContent = data.recommendation_label || rec;
+        badge.className = 'advisory-badge ' + recClass;
+        panel.className = 'advisory-panel ' + recClass;
+
+        // Sublabel — human-friendly, no jargon
+        const sublabel = document.getElementById('adv-sublabel');
+        const parts = [];
+        if (data.llm_available === true && data.llm_signal) {
+          parts.push('Đã phân tích tin tức thị trường');
+          if (data.news_count > 0) parts.push(data.news_count + ' tin gần đây');
+        } else if (data.llm_available === false) {
+          parts.push('Chưa có phân tích tin tức');
+        }
+        if (data.risk_level) {
+          const riskMap = {low: 'Rủi ro thấp', medium: 'Rủi ro vừa', high: 'Rủi ro cao'};
+          parts.push(riskMap[data.risk_level] || '');
+        }
+        sublabel.textContent = parts.filter(Boolean).join('  •  ');
+
+        // Reasons
+        const reasonsEl = document.getElementById('adv-reasons');
+        const reasons = data.reasons || [];
+        reasonsEl.innerHTML = reasons.map(r => '<li>' + r + '</li>').join('');
+
+        // Outlook
+        const outlookEl = document.getElementById('adv-outlook');
+        const outlookMap = { 'tăng': '📈 Xu hướng TĂNG', 'giảm': '📉 Xu hướng GIẢM', 'sideway': '➡️ Đi ngang (sideway)' };
+        const outlookColors = { 'tăng': '#22c55e', 'giảm': '#ef4444', 'sideway': '#eab308' };
+        const ol = data.price_outlook_7d || 'sideway';
+        outlookEl.textContent = outlookMap[ol] || outlookMap['sideway'];
+        outlookEl.style.color = outlookColors[ol] || outlookColors['sideway'];
+
+        // Confidence bar
+        const confPct = document.getElementById('adv-conf-pct');
+        const confFill = document.getElementById('adv-conf-fill');
+        let combinedConf = 0.5;
+        if (data.xgb_prob_buy != null && data.llm_confidence != null) {
+          combinedConf = data.xgb_prob_buy * 0.6 + data.llm_confidence * 0.4;
+        } else if (data.xgb_prob_buy != null) {
+          combinedConf = data.xgb_prob_buy;
+        } else if (data.llm_confidence != null) {
+          combinedConf = data.llm_confidence;
+        }
+        const confPctVal = Math.round(combinedConf * 100);
+        confPct.textContent = confPctVal + '%';
+        confFill.style.width = confPctVal + '%';
+        const confColors = { strong_buy: '#16a34a', buy: '#22c55e', watch: '#eab308', avoid: '#ef4444' };
+        confFill.style.background = confColors[recClass] || '#6366f1';
+
+        // Suggested action
+        const suggestedEl = document.getElementById('adv-suggested');
+        suggestedEl.textContent = data.suggested_action || '';
+
+        // Timestamp
+        const tsEl = document.getElementById('adv-timestamp');
+        const now = new Date();
+        tsEl.textContent = 'Cập nhật lúc ' + now.toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit'}) +
+          ' ' + now.toLocaleDateString('vi-VN');
+
+        // Disclaimer
+        const disclaimerEl = document.getElementById('adv-disclaimer');
+        disclaimerEl.textContent = '⚠️ ' + (data.disclaimer || 'Đây là hỗ trợ quyết định, không phải lời khuyên đầu tư');
+
+        // Show content, hide skeleton
+        skeleton.style.display = 'none';
+        content.style.display = 'block';
+      } catch (e) {
+        skeleton.style.display = 'none';
+        content.style.display = 'block';
+        document.getElementById('adv-badge').textContent = 'Không thể tải';
+        document.getElementById('adv-badge').className = 'advisory-badge watch';
+        panel.className = 'advisory-panel watch';
+        document.getElementById('adv-reasons').innerHTML = '<li>Lỗi kết nối: ' + e.message + '</li>';
+      }
+    }
+
     // ── Init ───────────────────────────────────────────────────────────────────
     (async function init() {
       await loadGoldCodes();
-      document.getElementById('gold-code').addEventListener('change', load);
+      document.getElementById('gold-code').addEventListener('change', () => {
+        load();
+        loadAdvisory();
+      });
       load();
       loadMacro();
+      loadAdvisory();
+    })();
+  </script>
+
+  <!-- ── Chatbot UI ── -->
+  <style>
+    .chat-fab {
+      position: fixed; bottom: 24px; right: 24px; z-index: 1000;
+      width: 56px; height: 56px; border-radius: 50%;
+      background: linear-gradient(135deg, #6366f1, #818cf8);
+      border: none; color: white; font-size: 1.5rem; cursor: pointer;
+      box-shadow: 0 4px 16px rgba(99,102,241,0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .chat-fab:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(99,102,241,0.5); }
+
+    .chat-modal {
+      position: fixed; bottom: 90px; right: 24px; z-index: 1001;
+      width: 380px; max-height: 520px;
+      background: var(--card, #1e293b); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+      display: none; flex-direction: column; overflow: hidden;
+    }
+    .chat-modal.open { display: flex; }
+
+    .chat-modal-header {
+      padding: 1rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.08);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .chat-modal-header h3 { margin: 0; font-size: 0.95rem; color: #e2e8f0; }
+    .chat-modal-close {
+      background: none; border: none; color: #94a3b8; font-size: 1.25rem; cursor: pointer;
+    }
+
+    .chat-messages {
+      flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem;
+      min-height: 200px; max-height: 340px;
+    }
+    .chat-msg {
+      max-width: 85%; padding: 0.6rem 0.9rem; border-radius: 12px;
+      font-size: 0.88rem; line-height: 1.5; word-wrap: break-word;
+    }
+    .chat-msg.user {
+      align-self: flex-end; background: rgba(99,102,241,0.25); color: #c7d2fe;
+      border-bottom-right-radius: 4px;
+    }
+    .chat-msg.bot {
+      align-self: flex-start; background: rgba(255,255,255,0.06); color: #cbd5e1;
+      border-bottom-left-radius: 4px;
+    }
+    .chat-msg.bot.typing { font-style: italic; color: #94a3b8; }
+
+    .chat-input-row {
+      padding: 0.75rem; border-top: 1px solid rgba(255,255,255,0.08);
+      display: flex; gap: 0.5rem;
+    }
+    .chat-input-row input {
+      flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; padding: 0.5rem 0.75rem; color: #e2e8f0;
+      font-size: 0.88rem; outline: none;
+    }
+    .chat-input-row input:focus { border-color: #6366f1; }
+    .chat-input-row button {
+      background: #6366f1; color: white; border: none; border-radius: 8px;
+      padding: 0.5rem 1rem; font-size: 0.88rem; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .chat-input-row button:hover { background: #4f46e5; }
+    .chat-input-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    @media (max-width: 500px) {
+      .chat-modal { width: calc(100vw - 32px); right: 16px; bottom: 80px; }
+    }
+  </style>
+
+  <a href="/chat" class="chat-fab" id="chat-fab" title="Hỏi Trợ lý Vàng AI">💬</a>
+  <div class="chat-modal" id="chat-modal">
+    <div class="chat-modal-header">
+      <h3>🤖 Hỏi đáp về vàng</h3>
+      <button class="chat-modal-close" id="chat-close">&times;</button>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <div class="chat-msg bot">Xin chào! Tôi có thể giúp bạn tìm hiểu về thị trường vàng. Hãy hỏi bất cứ điều gì 😊</div>
+    </div>
+    <div class="chat-input-row">
+      <input type="text" id="chat-input" placeholder="Ví dụ: Hôm nay có nên mua vàng không?" />
+      <button id="chat-send">Gửi</button>
+    </div>
+  </div>
+
+  <script>
+    // Chatbot logic
+    (function() {
+      const fab = document.getElementById('chat-fab');
+      const modal = document.getElementById('chat-modal');
+      const closeBtn = document.getElementById('chat-close');
+      const input = document.getElementById('chat-input');
+      const sendBtn = document.getElementById('chat-send');
+      const msgs = document.getElementById('chat-messages');
+
+      fab.addEventListener('click', () => {
+        modal.classList.toggle('open');
+        if (modal.classList.contains('open')) input.focus();
+      });
+      closeBtn.addEventListener('click', () => modal.classList.remove('open'));
+
+      function addMsg(text, role) {
+        const div = document.createElement('div');
+        div.className = 'chat-msg ' + role;
+        div.textContent = text;
+        msgs.appendChild(div);
+        msgs.scrollTop = msgs.scrollHeight;
+        return div;
+      }
+
+      async function sendMessage() {
+        const text = input.value.trim();
+        if (!text) return;
+        input.value = '';
+        addMsg(text, 'user');
+
+        const typing = addMsg('Đang suy nghĩ...', 'bot typing');
+        sendBtn.disabled = true;
+
+        try {
+          const r = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({message: text}),
+          });
+          const data = await r.json();
+          typing.remove();
+          addMsg(data.reply || 'Xin lỗi, tôi chưa thể trả lời.', 'bot');
+        } catch (e) {
+          typing.remove();
+          addMsg('Lỗi kết nối. Vui lòng thử lại.', 'bot');
+        }
+        sendBtn.disabled = false;
+        input.focus();
+      }
+
+      sendBtn.addEventListener('click', sendMessage);
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') sendMessage();
+      });
     })();
   </script>
 </body>

@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trợ lý Vàng AI — Hỏi đáp thị trường vàng Việt Nam</title>
+  <meta name="description" content="Chatbot AI chuyên về thị trường vàng Việt Nam. Hỏi bất cứ điều gì về giá vàng SJC, vàng nhẫn, xu hướng thị trường." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f172a;
+      --bg-chat: #1e293b;
+      --card: #1e293b;
+      --card-border: rgba(255,255,255,0.06);
+      --accent: #818cf8;
+      --accent-glow: rgba(99,102,241,0.15);
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --user-bg: rgba(99,102,241,0.18);
+      --bot-bg: rgba(255,255,255,0.04);
+      --input-bg: rgba(255,255,255,0.06);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    .chat-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1.5rem;
+      border-bottom: 1px solid var(--card-border);
+      background: rgba(15,23,42,0.95);
+      backdrop-filter: blur(10px);
+      flex-shrink: 0;
+    }
+
+    .chat-header-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .chat-logo {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #f59e0b, #eab308);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+    }
+
+    .chat-header h1 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      background: linear-gradient(to right, #f59e0b, #fbbf24);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .chat-header-sub {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .back-link {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.85rem;
+      padding: 0.4rem 0.8rem;
+      border: 1px solid rgba(129,140,248,0.3);
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    .back-link:hover {
+      background: rgba(129,140,248,0.1);
+      border-color: var(--accent);
+    }
+
+    /* ── Messages area ── */
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      scroll-behavior: smooth;
+    }
+
+    .chat-messages::-webkit-scrollbar { width: 6px; }
+    .chat-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+    /* ── Welcome screen ── */
+    .welcome-screen {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .welcome-icon {
+      width: 72px; height: 72px;
+      background: linear-gradient(135deg, #f59e0b, #eab308, #fbbf24);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      margin-bottom: 1.25rem;
+      box-shadow: 0 8px 32px rgba(245,158,11,0.25);
+    }
+
+    .welcome-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(to right, #f59e0b, #fbbf24, #f59e0b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .welcome-desc {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      max-width: 480px;
+      line-height: 1.6;
+      margin-bottom: 2rem;
+    }
+
+    /* ── Prompt suggestions ── */
+    .suggestions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      max-width: 560px;
+      width: 100%;
+    }
+
+    @media (max-width: 600px) {
+      .suggestions { grid-template-columns: 1fr; }
+    }
+
+    .suggestion-card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+    }
+
+    .suggestion-card:hover {
+      border-color: rgba(245,158,11,0.4);
+      background: rgba(245,158,11,0.05);
+      transform: translateY(-1px);
+    }
+
+    .suggestion-icon {
+      font-size: 1.1rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .suggestion-text {
+      font-size: 0.82rem;
+      color: #cbd5e1;
+      line-height: 1.4;
+    }
+
+    /* ── Message bubbles ── */
+    .msg-row {
+      display: flex;
+      gap: 0.75rem;
+      padding: 1rem 0;
+      max-width: 780px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .msg-row + .msg-row {
+      border-top: 1px solid rgba(255,255,255,0.03);
+    }
+
+    .msg-avatar {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .msg-avatar.user {
+      background: linear-gradient(135deg, #6366f1, #818cf8);
+    }
+
+    .msg-avatar.bot {
+      background: linear-gradient(135deg, #f59e0b, #eab308);
+    }
+
+    .msg-content {
+      flex: 1;
+      font-size: 0.92rem;
+      line-height: 1.7;
+      color: #e2e8f0;
+    }
+
+    .msg-content p { margin: 0; }
+    .msg-content p + p { margin-top: 0.5rem; }
+
+    .msg-name {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .msg-typing {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+
+    .typing-dots span {
+      animation: blink 1.2s ease-in-out infinite;
+      font-size: 1.5rem;
+      line-height: 1;
+    }
+    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    /* ── Input area ── */
+    .chat-input-area {
+      flex-shrink: 0;
+      padding: 1rem 1.5rem 1.25rem;
+      background: rgba(15,23,42,0.95);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid var(--card-border);
+    }
+
+    .input-container {
+      max-width: 780px;
+      margin: 0 auto;
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-end;
+    }
+
+    .input-wrapper {
+      flex: 1;
+      position: relative;
+    }
+
+    .input-wrapper textarea {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 0.85rem 1.1rem;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.92rem;
+      line-height: 1.5;
+      resize: none;
+      outline: none;
+      min-height: 48px;
+      max-height: 150px;
+      transition: border-color 0.2s;
+    }
+
+    .input-wrapper textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .input-wrapper textarea::placeholder {
+      color: var(--text-muted);
+    }
+
+    .send-btn {
+      width: 48px; height: 48px;
+      background: linear-gradient(135deg, #f59e0b, #eab308);
+      border: none;
+      border-radius: 14px;
+      color: #0f172a;
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .send-btn:hover { transform: scale(1.05); box-shadow: 0 4px 16px rgba(245,158,11,0.3); }
+    .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .chat-disclaimer {
+      text-align: center;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      max-width: 780px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* ── New chat button ── */
+    .new-chat-btn {
+      background: none;
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      border-radius: 8px;
+      padding: 0.4rem 0.8rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .new-chat-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Header -->
+  <div class="chat-header">
+    <div class="chat-header-left">
+      <div class="chat-logo">🥇</div>
+      <div>
+        <h1>Trợ lý Vàng AI</h1>
+        <div class="chat-header-sub">Chuyên gia tư vấn vàng Việt Nam</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:0.5rem;align-items:center;">
+      <button class="new-chat-btn" id="new-chat-btn">🔄 Đoạn chat mới</button>
+      <a href="/" class="back-link">📊 Bảng điều khiển</a>
+    </div>
+  </div>
+
+  <!-- Messages container -->
+  <div class="chat-messages" id="chat-messages">
+    <!-- Welcome screen (shown initially) -->
+    <div class="welcome-screen" id="welcome-screen">
+      <div class="welcome-icon">🥇</div>
+      <div class="welcome-title">Xin chào! Tôi là Trợ lý Vàng AI</div>
+      <p class="welcome-desc">
+        Tôi có thể giúp bạn phân tích thị trường vàng Việt Nam, giải đáp thắc mắc về giá vàng SJC,
+        vàng nhẫn, xu hướng giá, và đưa ra gợi ý đầu tư dựa trên dữ liệu phân tích của hệ thống.
+      </p>
+
+      <div class="suggestions" id="suggestions">
+        <div class="suggestion-card" data-prompt="Hôm nay có nên mua vàng SJC không? Tại sao?">
+          <div class="suggestion-icon">💰</div>
+          <div class="suggestion-text">Hôm nay có nên mua vàng SJC không? Tại sao?</div>
+        </div>
+        <div class="suggestion-card" data-prompt="Giá vàng tuần tới sẽ tăng hay giảm?">
+          <div class="suggestion-icon">📈</div>
+          <div class="suggestion-text">Giá vàng tuần tới sẽ tăng hay giảm?</div>
+        </div>
+        <div class="suggestion-card" data-prompt="So sánh vàng miếng SJC và vàng nhẫn, nên mua loại nào?">
+          <div class="suggestion-icon">⚖️</div>
+          <div class="suggestion-text">So sánh vàng miếng SJC và vàng nhẫn, nên mua loại nào?</div>
+        </div>
+        <div class="suggestion-card" data-prompt="Giải thích cho tôi premium vàng SJC là gì và tại sao nó quan trọng?">
+          <div class="suggestion-icon">📚</div>
+          <div class="suggestion-text">Premium vàng SJC là gì và tại sao nó quan trọng?</div>
+        </div>
+        <div class="suggestion-card" data-prompt="Chính sách mới nhất của NHNN ảnh hưởng gì đến giá vàng?">
+          <div class="suggestion-icon">🏛️</div>
+          <div class="suggestion-text">Chính sách NHNN ảnh hưởng gì đến giá vàng?</div>
+        </div>
+        <div class="suggestion-card" data-prompt="Tôi muốn đầu tư 50 triệu vào vàng, nên làm thế nào?">
+          <div class="suggestion-icon">💡</div>
+          <div class="suggestion-text">Tôi muốn đầu tư 50 triệu vào vàng, nên làm thế nào?</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input area -->
+  <div class="chat-input-area">
+    <div class="input-container">
+      <div class="input-wrapper">
+        <textarea id="chat-input" rows="1" placeholder="Hỏi bất cứ điều gì về vàng..." maxlength="1000"></textarea>
+      </div>
+      <button class="send-btn" id="send-btn" title="Gửi">➤</button>
+    </div>
+    <div class="chat-disclaimer">
+      ⚠️ Trợ lý AI chỉ mang tính tham khảo, không phải lời khuyên tài chính chính thức. Hãy tham vấn chuyên gia trước khi đầu tư.
+    </div>
+  </div>
+
+  <script>
+    // ── State ──
+    let conversationHistory = [];
+    const MAX_HISTORY = 10; // giữ tối đa 10 cặp message
+
+    // ── DOM ──
+    const messagesEl = document.getElementById('chat-messages');
+    const welcomeEl = document.getElementById('welcome-screen');
+    const inputEl = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('send-btn');
+    const suggestionsEl = document.getElementById('suggestions');
+    const newChatBtn = document.getElementById('new-chat-btn');
+
+    // ── Auto-resize textarea ──
+    inputEl.addEventListener('input', () => {
+      inputEl.style.height = 'auto';
+      inputEl.style.height = Math.min(inputEl.scrollHeight, 150) + 'px';
+    });
+
+    // ── Add message to UI ──
+    function addMessage(text, role) {
+      // Hide welcome on first message
+      if (welcomeEl.style.display !== 'none') {
+        welcomeEl.style.display = 'none';
+      }
+
+      const row = document.createElement('div');
+      row.className = 'msg-row';
+
+      const avatar = document.createElement('div');
+      avatar.className = 'msg-avatar ' + role;
+      avatar.textContent = role === 'user' ? '👤' : '🥇';
+
+      const content = document.createElement('div');
+      content.className = 'msg-content';
+
+      const name = document.createElement('div');
+      name.className = 'msg-name';
+      name.textContent = role === 'user' ? 'Bạn' : 'Trợ lý Vàng AI';
+
+      const body = document.createElement('div');
+
+      // Format text with paragraphs
+      const paragraphs = text.split('\n').filter(p => p.trim());
+      paragraphs.forEach(p => {
+        const pe = document.createElement('p');
+        pe.textContent = p;
+        body.appendChild(pe);
+      });
+
+      content.appendChild(name);
+      content.appendChild(body);
+      row.appendChild(avatar);
+      row.appendChild(content);
+      messagesEl.appendChild(row);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+
+      return { row, body };
+    }
+
+    // ── Typing indicator ──
+    function showTyping() {
+      if (welcomeEl.style.display !== 'none') {
+        welcomeEl.style.display = 'none';
+      }
+
+      const row = document.createElement('div');
+      row.className = 'msg-row';
+      row.id = 'typing-indicator';
+
+      const avatar = document.createElement('div');
+      avatar.className = 'msg-avatar bot';
+      avatar.textContent = '🥇';
+
+      const content = document.createElement('div');
+      content.className = 'msg-content';
+
+      const name = document.createElement('div');
+      name.className = 'msg-name';
+      name.textContent = 'Trợ lý Vàng AI';
+
+      const dots = document.createElement('div');
+      dots.className = 'typing-dots msg-typing';
+      dots.innerHTML = '<span>●</span><span>●</span><span>●</span>';
+
+      content.appendChild(name);
+      content.appendChild(dots);
+      row.appendChild(avatar);
+      row.appendChild(content);
+      messagesEl.appendChild(row);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function hideTyping() {
+      const el = document.getElementById('typing-indicator');
+      if (el) el.remove();
+    }
+
+    // ── Send message ──
+    async function sendMessage(text) {
+      if (!text || !text.trim()) return;
+      text = text.trim();
+
+      // Add user message
+      addMessage(text, 'user');
+      conversationHistory.push({ role: 'user', content: text });
+
+      // Trim history
+      if (conversationHistory.length > MAX_HISTORY * 2) {
+        conversationHistory = conversationHistory.slice(-MAX_HISTORY * 2);
+      }
+
+      // UI state
+      inputEl.value = '';
+      inputEl.style.height = 'auto';
+      sendBtn.disabled = true;
+      showTyping();
+
+      try {
+        const resp = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: text,
+            history: conversationHistory.slice(0, -1), // exclude current message
+          }),
+        });
+
+        const data = await resp.json();
+        hideTyping();
+
+        const reply = data.reply || 'Xin lỗi, tôi chưa thể trả lời lúc này.';
+        addMessage(reply, 'bot');
+        conversationHistory.push({ role: 'assistant', content: reply });
+
+      } catch (e) {
+        hideTyping();
+        addMessage('Lỗi kết nối. Vui lòng thử lại sau.', 'bot');
+      }
+
+      sendBtn.disabled = false;
+      inputEl.focus();
+    }
+
+    // ── Event listeners ──
+    sendBtn.addEventListener('click', () => sendMessage(inputEl.value));
+
+    inputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage(inputEl.value);
+      }
+    });
+
+    // Suggestion cards
+    suggestionsEl.querySelectorAll('.suggestion-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const prompt = card.getAttribute('data-prompt');
+        sendMessage(prompt);
+      });
+    });
+
+    // New chat
+    newChatBtn.addEventListener('click', () => {
+      conversationHistory = [];
+      messagesEl.innerHTML = '';
+      messagesEl.appendChild(welcomeEl);
+      welcomeEl.style.display = '';
+      inputEl.focus();
+    });
+
+    // Focus input on load
+    inputEl.focus();
+  </script>
+</body>
+</html>

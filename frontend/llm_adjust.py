@@ -468,6 +468,208 @@ def run_llm_adjust_for_latest(
     return _call_llm(api_key, _make_prompt(target_date, float(price_vnd or 0), ml_signal, news))
 
 
+# ── ADVISORY PROMPT (nâng cấp) ─────────────────────────────────────────────────
+_SYSTEM_ADVISORY = """Bạn là chuyên gia phân tích thị trường vàng Việt Nam 15 năm kinh nghiệm.
+Bạn am hiểu sâu:
+- Chính sách NHNN: đấu thầu vàng miếng, kiểm soát giá, hạn ngạch nhập khẩu vàng nguyên liệu
+- Premium SJC: chênh lệch giá nội địa vs thế giới, xu hướng thu hẹp/mở rộng
+- Tỷ giá USD/VND và tác động đến giá vàng quy đổi
+- Yếu tố quốc tế: lãi suất FED, chỉ số DXY, căng thẳng địa chính trị
+- Tâm lý thị trường: cầu mua tích trữ (Tết, Vía Thần Tài), cầu đầu cơ
+- Chu kỳ mùa vụ đặc thù Việt Nam
+
+Nguyên tắc phân tích:
+- Luôn KẾT HỢP với tín hiệu XGBoost đã có, không phủ nhận hoàn toàn model
+- NHNN đấu thầu/kiểm soát vàng → giảm premium → ảnh hưởng tiêu cực
+- USD yếu, bất ổn địa chính trị → hỗ trợ giá vàng → tích cực
+- Nếu không có tin tức, ghi rõ news_summary = 'Không có tin tức gần đây — phân tích dựa trên dữ liệu kỹ thuật'
+- Không đưa ra lời khuyên đầu tư tuyệt đối
+- Trả lời ngắn gọn, thực tế, tiếng Việt"""
+
+
+def _make_advisory_prompt(
+    target_date: date,
+    price_vnd:   float,
+    ml_signal:   str | None,
+    prob_buy:    float | None,
+    news:        list[dict],
+) -> str:
+    """Prompt nâng cấp cho advisory — trả về 10 trường."""
+    if news:
+        news_block = "\n".join(
+            f"{i}. [{n['source']} {n['published'][:10]}] {n['title']}"
+            + (f"\n   {n['snippet'][:200]}" if n.get("snippet") else "")
+            for i, n in enumerate(news[:MAX_NEWS], 1)
+        )
+    else:
+        news_block = "Không tìm thấy tin tức liên quan trong 48h qua."
+
+    prob_str = f"{prob_buy:.1%}" if prob_buy is not None else "N/A"
+
+    return f"""Ngày: {target_date.strftime('%d/%m/%Y')}
+Giá vàng SJC: {price_vnd:,.0f} VND/lượng
+Tín hiệu XGBoost: {ml_signal or 'N/A'} (P(BUY) = {prob_str})
+
+TIN TỨC:
+{news_block}
+
+Trả về JSON THUẦN TÚY (không markdown, không ```) theo định dạng:
+{{
+  "signal": "BUY" hoặc "NOT_BUY" hoặc "WATCH",
+  "confidence": 0.0-1.0,
+  "reasoning": "2-3 câu tiếng Việt giải thích",
+  "key_factors": [
+    {{"factor": "mô tả yếu tố", "impact": "positive" hoặc "negative", "weight": "high" hoặc "medium" hoặc "low"}},
+    ...tối đa 5 yếu tố
+  ],
+  "risk_level": "low" hoặc "medium" hoặc "high",
+  "suggested_action": "1 câu lời khuyên cụ thể",
+  "price_outlook_7d": "tăng" hoặc "giảm" hoặc "sideway",
+  "key_risk": "1 câu rủi ro chính nếu mua hôm nay",
+  "news_summary": "tóm tắt tin tức 1-2 câu (hoặc 'Không có tin tức gần đây — phân tích dựa trên dữ liệu kỹ thuật')"
+}}
+
+Nguyên tắc:
+- signal PHẢI là 1 trong 3: BUY, NOT_BUY, WATCH
+- NHNN đấu thầu/kiểm soát vàng → giảm premium → signal nghiêng NOT_BUY
+- USD yếu, bất ổn địa chính trị → hỗ trợ vàng → signal nghiêng BUY
+- Tín hiệu mâu thuẫn hoặc không rõ ràng → WATCH
+- Không đủ tin → giữ nguyên tín hiệu XGBoost, confidence 0.5, ghi rõ trong news_summary
+- key_factors: liệt kê tối đa 5, ưu tiên yếu tố có ảnh hưởng lớn nhất
+- price_outlook_7d phải nhất quán với signal và reasoning"""
+
+
+def _call_llm_advisory(api_key: str, prompt: str) -> dict | None:
+    """Gọi LLM với prompt advisory, parse 10 trường. Rate limit guard: 429 → None."""
+    try:
+        resp = requests.post(
+            OPENAI_URL,
+            headers={"Authorization": f"Bearer {api_key}",
+                     "Content-Type": "application/json"},
+            json={
+                "model":       OPENAI_MODEL,
+                "temperature": 0.2,
+                "max_tokens":  800,
+                "messages": [
+                    {"role": "system", "content": _SYSTEM_ADVISORY},
+                    {"role": "user",   "content": prompt},
+                ],
+            },
+            timeout=30,
+        )
+        resp.raise_for_status()
+        raw = resp.json()["choices"][0]["message"]["content"].strip()
+        # Bỏ markdown wrapper nếu có
+        if raw.startswith("```"):
+            raw = "\n".join(
+                l for l in raw.splitlines() if not l.strip().startswith("```")
+            ).strip()
+        data = json.loads(raw)
+
+        # Parse và validate
+        signal = str(data.get("signal", "NOT_BUY")).upper()
+        if signal not in ("BUY", "NOT_BUY", "WATCH"):
+            signal = "NOT_BUY"
+
+        conf = float(data.get("confidence", 0.5))
+        conf = round(max(0.0, min(1.0, conf)), 2)
+
+        risk = str(data.get("risk_level", "medium")).lower()
+        if risk not in ("low", "medium", "high"):
+            risk = "medium"
+
+        outlook = str(data.get("price_outlook_7d", "sideway")).lower()
+        if outlook not in ("tăng", "giảm", "sideway"):
+            outlook = "sideway"
+
+        # Parse key_factors
+        raw_factors = data.get("key_factors") or []
+        key_factors = []
+        for f in raw_factors[:5]:
+            if isinstance(f, dict) and f.get("factor"):
+                key_factors.append({
+                    "factor": str(f["factor"]),
+                    "impact": str(f.get("impact", "neutral")),
+                    "weight": str(f.get("weight", "medium")),
+                })
+
+        return {
+            "signal":           signal,
+            "confidence":       conf,
+            "reasoning":        str(data.get("reasoning", "")),
+            "key_factors":      key_factors,
+            "risk_level":       risk,
+            "suggested_action": str(data.get("suggested_action", "")),
+            "price_outlook_7d": outlook,
+            "key_risk":         str(data.get("key_risk", "")),
+            "news_summary":     str(data.get("news_summary", "")),
+        }
+
+    except requests.exceptions.HTTPError as e:
+        code = e.response.status_code if e.response else 0
+        if code == 401:
+            print("[OpenAI Advisory] API key không hợp lệ")
+        elif code == 429:
+            print("[OpenAI Advisory] Rate limit — trả về None")
+        else:
+            print(f"[OpenAI Advisory] HTTP {code}: {e}")
+        return None
+    except json.JSONDecodeError:
+        print("[OpenAI Advisory] Không parse được JSON từ LLM")
+        return None
+    except Exception as e:
+        print(f"[OpenAI Advisory] Lỗi: {e}")
+        return None
+
+
+def run_llm_adjust_for_advisory(
+    root_path:     "Path | str",
+    pred_date_str: str | None,
+    ml_signal:     str | None,
+    price_vnd:     float | None,
+    prob_buy:      float | None = None,
+) -> dict | None:
+    """
+    Dùng cho /api/advisory — phân tích nâng cấp với 10 trường output.
+
+    Returns:
+        dict với keys: signal, confidence, reasoning, key_factors, risk_level,
+        suggested_action, price_outlook_7d, key_risk, news_summary, news_count
+        hoặc None nếu thiếu API key.
+    """
+    api_key   = os.getenv("OPENAI_API_KEY")
+    gnews_key = os.getenv("GNEWS_API_KEY")
+    if not api_key:
+        print("[LLM Advisory] Thiếu OPENAI_API_KEY")
+        return None
+
+    target_date = date.today()
+    if pred_date_str:
+        try:
+            target_date = date.fromisoformat(pred_date_str[:10])
+        except ValueError:
+            pass
+
+    newsapi_key = os.getenv("NEWSAPI_KEY")
+    news = _collect_news(target_date, newsapi_key, gnews_key, max_total=6)
+
+    result = _call_llm_advisory(
+        api_key,
+        _make_advisory_prompt(
+            target_date,
+            float(price_vnd or 0),
+            ml_signal,
+            prob_buy,
+            news,
+        ),
+    )
+
+    if result is not None:
+        result["news_count"] = len(news)
+
+    return result
+
+
 # ── Test chạy trực tiếp ────────────────────────────────────────────────────────
 if __name__ == "__main__":
     import sys

@@ -49,6 +49,12 @@ GOLD_GROUP_MAP: dict[str, set[str]] = {
     "JEWELRY_9999": {"BT9999NTT", "PQHN24NTT"},
     "DOJI_PLAIN_RING": {"DOJINHTV"},
 }
+# Tên hiển thị tiếng Việt dễ hiểu cho người dùng
+GOLD_NAME_MAP: dict[str, str] = {
+    "SJC_BAR": "Vàng miếng SJC",
+    "JEWELRY_9999": "Vàng 9999 nữ trang",
+    "DOJI_PLAIN_RING": "Vàng nhẫn trơn DOJI",
+}
 
 
 def _load_model_config() -> dict:
@@ -455,7 +461,11 @@ def index():
 
 @app.route("/api/gold_codes")
 def api_gold_codes():
-    return jsonify({"gold_codes": _get_gold_codes()})
+    codes = _get_gold_codes()
+    return jsonify({
+        "gold_codes": codes,
+        "gold_names": {c: GOLD_NAME_MAP.get(c, c) for c in codes},
+    })
 
 
 @app.route("/api/macro")
@@ -527,6 +537,127 @@ def api_predict():
             fallback["warning"] = f"Pipeline tạm thời lỗi ({e}). Đang hiển thị dữ liệu giá, tín hiệu tạm thời là N/A."
             return jsonify(fallback), 200
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/chat")
+def chat_page():
+    """Trang chatbot toàn màn hình."""
+    return render_template("chat.html")
+
+
+@app.route("/api/advisory")
+def api_advisory():
+    """
+    Lời khuyên đầu tư tổng hợp: XGBoost + LLM + Tổng hợp.
+    Query: gold_code= (tùy chọn, mặc định SJC_BAR).
+    """
+    gold_code = request.args.get("gold_code", "SJC_BAR").strip() or "SJC_BAR"
+    try:
+        try:
+            from frontend.advisory_engine import generate_advisory
+        except ImportError:
+            from advisory_engine import generate_advisory
+
+        # Chạy pipeline predict trước
+        predict_result = None
+        try:
+            predict_result = _run_pipeline_and_predict(gold_code=gold_code)
+        except Exception as e:
+            print(f"[Advisory] Pipeline error (sẽ dùng fallback): {e}")
+
+        advisory = generate_advisory(
+            gold_code=gold_code,
+            root_path=ROOT,
+            predict_result=predict_result,
+        )
+        return jsonify(advisory)
+    except Exception as e:
+        return jsonify({
+            "error": str(e),
+            "final_recommendation": "WATCH",
+            "recommendation_label": "Không thể phân tích lúc này",
+            "reasons": [f"Lỗi hệ thống: {e}"],
+            "llm_available": False,
+            "disclaimer": "Đây là hỗ trợ quyết định, không phải lời khuyên đầu tư",
+        }), 500
+
+
+@app.route("/api/chat", methods=["POST"])
+def api_chat():
+    """
+    Chatbot: người dùng hỏi về thị trường vàng, hệ thống trả lời bằng tiếng Việt.
+    Body JSON: {"message": "...", "history": [{"role": "user/assistant", "content": "..."}]}
+    """
+    import os as _os
+    api_key = _os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return jsonify({"reply": "Chatbot chưa được cấu hình. Vui lòng thêm OPENAI_API_KEY vào file .env"}), 200
+
+    body = request.get_json(force=True, silent=True) or {}
+    user_msg = str(body.get("message", "")).strip()
+    history = body.get("history", [])  # multi-turn
+    if not user_msg:
+        return jsonify({"reply": "Vui lòng nhập câu hỏi."}), 200
+
+    # Lấy context hiện tại từ advisory (nếu có)
+    advisory_context = ""
+    try:
+        try:
+            from frontend.advisory_engine import generate_advisory, _advisory_cache
+        except ImportError:
+            from advisory_engine import generate_advisory, _advisory_cache
+        for key, (ts, data) in _advisory_cache.items():
+            advisory_context = (
+                f"Lời khuyên hiện tại: {data.get('recommendation_label', 'N/A')}. "
+                f"Giá vàng: {data.get('current_price', 'N/A'):,.0f} VND. "
+                f"Lý do: {'; '.join(data.get('reasons', []))}. "
+                f"Xu hướng 7 ngày: {data.get('price_outlook_7d', 'N/A')}. "
+                f"Mức rủi ro: {data.get('risk_level', 'N/A')}."
+            )
+            break
+    except Exception:
+        pass
+
+    system_prompt = (
+        "Bạn là Trợ lý Vàng AI — chuyên gia tư vấn thị trường vàng Việt Nam. "
+        "Phong cách: thân thiện, dễ hiểu, chuyên nghiệp. "
+        "Trả lời tiếng Việt, KHÔNG dùng thuật ngữ kỹ thuật (như XGBoost, F1, RSI, threshold). "
+        "Nếu người dùng hỏi về giá vàng, mua/bán, xu hướng thị trường — hãy đưa ra nhận định rõ ràng, cụ thể. "
+        "Nếu có context phân tích bên dưới, hãy dùng làm căn cứ. "
+        "Luôn nhắc rằng đây là tham khảo, không phải lời khuyên tài chính chính thức. "
+        "Có thể dùng emoji phù hợp. "
+        "Trả lời đầy đủ, chi tiết nhưng dễ đọc (dùng đoạn văn ngắn, gạch đầu dòng nếu cần).\n\n"
+        f"CONTEXT PHÂN TÍCH HIỆN TẠI:\n{advisory_context if advisory_context else 'Chưa có dữ liệu phân tích. Hãy trả lời dựa trên kiến thức chung về thị trường vàng Việt Nam.'}"
+    )
+
+    # Build messages array (multi-turn)
+    messages = [{"role": "system", "content": system_prompt}]
+    # Add history (sanitize)
+    if isinstance(history, list):
+        for h in history[-10:]:
+            if isinstance(h, dict) and h.get("role") in ("user", "assistant") and h.get("content"):
+                messages.append({"role": h["role"], "content": str(h["content"])[:500]})
+    messages.append({"role": "user", "content": user_msg})
+
+    try:
+        resp = __import__('requests').post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={
+                "model": "gpt-4o-mini",
+                "temperature": 0.6,
+                "max_tokens": 600,
+                "messages": messages,
+            },
+            timeout=30,
+        )
+        if resp.status_code == 429:
+            return jsonify({"reply": "Hệ thống đang bận, vui lòng thử lại sau ít phút. ⏳"}), 200
+        resp.raise_for_status()
+        reply = resp.json()["choices"][0]["message"]["content"].strip()
+        return jsonify({"reply": reply})
+    except Exception as e:
+        return jsonify({"reply": f"Xin lỗi, tôi chưa thể trả lời lúc này. Vui lòng thử lại sau. 🙏"}), 200
 
 
 @app.route("/api/date-detail")
