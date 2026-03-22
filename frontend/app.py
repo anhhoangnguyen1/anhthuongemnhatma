@@ -21,9 +21,9 @@ try:
 except ImportError:
     pass
 
-# Thêm New folder để import train_xgboost_dss
+# Luôn dùng training/ làm nguồn model + script train thực tế.
 ROOT = Path(__file__).resolve().parent.parent
-NEW_FOLDER = ROOT / "New folder"
+NEW_FOLDER = ROOT / "training"
 if str(NEW_FOLDER) not in sys.path:
     sys.path.insert(0, str(NEW_FOLDER))
 
@@ -37,11 +37,18 @@ app = Flask(__name__, template_folder=Path(__file__).resolve().parent / "templat
 
 # Đường dẫn mặc định: model và data
 MODEL_DIR = NEW_FOLDER / "output"
-MODEL_PATH = MODEL_DIR / "xgboost_dss_model.pkl"
-SCALER_PATH = MODEL_DIR / "scaler_xgboost_dss.pkl"
+MODEL_PATH = MODEL_DIR / "xgboost_gold_model.pkl"
+SCALER_PATH = MODEL_DIR / "scaler_gold.pkl"
 LABEL_ENCODER_PATH = MODEL_DIR / "label_encoder_dss.pkl"
 MODEL_CONFIG_PATH = MODEL_DIR / "model_config.json"
-_DEFAULT_LABELS = ["BUY", "HOLD", "SELL"]
+# QUAN TRỌNG: thứ tự khớp với model.classes_ = [0, 1] => [NOT_BUY, BUY]
+# LABELS[0]="NOT_BUY", LABELS[1]="BUY" — dùng LABELS[prediction_int] mới đúng
+_DEFAULT_LABELS = ["NOT_BUY", "BUY"]
+GOLD_GROUP_MAP: dict[str, set[str]] = {
+    "SJC_BAR": {"SJL1L10", "BTSJC", "VNGSJC", "VIETTINMSJC"},
+    "JEWELRY_9999": {"BT9999NTT", "PQHN24NTT"},
+    "DOJI_PLAIN_RING": {"DOJINHTV"},
+}
 
 
 def _load_model_config() -> dict:
@@ -136,52 +143,59 @@ def _get_gold_codes():
         try:
             path = _get_master_path()
             df = pd.read_csv(path, usecols=["gold_code"], nrows=200000)
-            _gold_codes_cache = df["gold_code"].dropna().unique().tolist()
+            # Chỉ expose 3 nhóm cố định cho UI (cộng thêm "trung bình tất cả" ở frontend)
+            _gold_codes_cache = list(GOLD_GROUP_MAP.keys())
         except Exception:
-            _gold_codes_cache = []
+            _gold_codes_cache = list(GOLD_GROUP_MAP.keys())
     return _gold_codes_cache
 
 
 
 def _run_pipeline_and_predict(gold_code: str | None = None):
-    from train_xgboost_dss import (
-        add_lag_features,
-        add_technical_indicators,
-        add_t3_target,
-        engineer_features,
-        load_and_resample_daily,
-    )
+    # Fix 3: import từ train_xgboost_gold (mới), fallback train_xgboost_dss (cũ)
+    try:
+        from train_xgboost_gold import (
+            add_target,
+            add_lag_features,
+            add_technical_indicators,
+            engineer_features,
+            load_and_resample,
+        )
+    except ImportError:
+        from train_xgboost_dss import (
+            add_target,
+            add_lag_features,
+            add_technical_indicators,
+            engineer_features,
+            load_and_resample,
+        )
 
     LABELS = _get_labels()
     cfg = _load_model_config()
-    binary_mode = cfg.get("binary", LABELS == ["BUY", "NOT_BUY"])
-    buy_pct = cfg.get("buy_pct", None)
-    hold_band = cfg.get("hold_band_ratio", 0.15)
-    buy_ratio = cfg.get("buy_ratio", 1.0)
-    sell_ratio = cfg.get("sell_ratio", 0.3)
-    optimal_threshold = cfg.get("optimal_threshold", 0.5)
-    horizon = int(cfg.get("horizon", 3))
 
-    df = load_and_resample_daily(_get_master_path())
-    # Nếu chọn 1 mã vàng: lọc để mỗi ngày = 1 dòng = 1 lần dự đoán
+    # Fix 3: parse config mới (train_xgboost_gold) lẫn config cũ (train_xgboost_dss)
+    buy_pct           = cfg.get("buy_pct",            cfg.get("buy_pct", 0.5))
+    horizon           = int(cfg.get("horizon",         cfg.get("horizon", 7)))
+    optimal_threshold = cfg.get("optimal_threshold",   0.5)
+    binary_mode       = True  # model mới luôn binary BUY/NOT_BUY
+
+    df = load_and_resample(_get_master_path())
     if gold_code and gold_code.strip():
-        allowed = _get_gold_codes()
-        if gold_code not in allowed:
+        selected = GOLD_GROUP_MAP.get(gold_code.strip())
+        if selected is None:
             return None
-        df = df[df["gold_code"] == gold_code].copy()
+        df = df[df["gold_code"].isin(selected)].copy()
         if df.empty:
             return None
 
     df = add_technical_indicators(df)
-    # Lag features phải tính trên FULL dataset (trước khi lọc 3 ngày cuối)
     df = add_lag_features(df)
 
-    # Giá theo ngày lấy TRƯỚC add_t3_target để giữ đủ ngày
     daily_price = df.groupby("timestamp")["sell_price"].mean().reset_index()
     daily_price.columns = ["date", "price"]
 
-    # Daily features cho biểu đồ (aggregate theo ngày từ df trước add_t3_target)
-    feat_cols = ["domestic_premium", "RSI_14", "cum_return_3d_pct", "cum_return_7d_pct", "sell_price", "world_price_vnd"]
+    feat_cols = ["domestic_premium", "RSI_14", "cum_return_3d_pct", "cum_return_7d_pct",
+                 "cum_return_3d", "cum_return_7d", "sell_price", "world_price_vnd"]
     available = [c for c in feat_cols if c in df.columns]
     daily_feat = None
     if available:
@@ -193,68 +207,95 @@ def _run_pipeline_and_predict(gold_code: str | None = None):
 
     le = LabelEncoder()
     le.fit(LABELS)
-    # Dùng đúng labeling config đã train
-    df_with_target, _ = add_t3_target(
-        df.copy(),
-        hold_band_ratio=hold_band,
-        buy_ratio=buy_ratio,
-        sell_ratio=sell_ratio,
-        buy_pct=buy_pct,
-        binary=binary_mode,
-        horizon=horizon,
-    )
+
+    # Fix 4: gọi add_target với signature mới, target col là "target" (không phải "target_encoded")
+    df_with_target = add_target(df.copy(), buy_pct=float(buy_pct), horizon=horizon)
+
+    # Hỗ trợ cả script mới (target) và cũ (target_encoded)
+    target_col = "target" if "target" in df_with_target.columns else "target_encoded"
+    if target_col not in df_with_target.columns:
+        return None
+
     df_with_target = engineer_features(df_with_target)
     if df_with_target.empty:
         return None
 
-    target_col = "target_encoded"
-    if target_col not in df_with_target.columns:
-        return None
-
-    model = joblib.load(MODEL_PATH)
+    model        = joblib.load(MODEL_PATH)
     preprocessor = joblib.load(SCALER_PATH)
 
-    def _predict_block(df_block: pd.DataFrame) -> pd.Series:
-        """Reindex → scale (column-safe) → predict with optimal threshold."""
-        X = df_block.drop(columns=[target_col], errors="ignore").copy()
-        X = X.drop(columns=["timestamp"], errors="ignore")
+    def _predict_block(df_block: pd.DataFrame) -> tuple[pd.Series, pd.Series]:
+        """Reindex → scale → predict với optimal threshold."""
+        X = df_block.drop(columns=[target_col, "timestamp"], errors="ignore").copy()
         if hasattr(model, "feature_names_in_"):
             X = X.reindex(columns=model.feature_names_in_, fill_value=0)
         if hasattr(preprocessor, "transform_df"):
             X = preprocessor.transform_df(X)
-        # Use optimal threshold for binary BUY/NOT_BUY
+
         if binary_mode and hasattr(model, "predict_proba"):
             proba = model.predict_proba(X)
-            classes = list(model.classes_)
-            buy_col = classes.index(
-                list(LABELS).index("BUY") if "BUY" in LABELS else 0
-            )
-            prob_buy = proba[:, buy_col]
-            thr = optimal_threshold if optimal_threshold != 0.5 else 0.5
-            pred_encoded = np.where(prob_buy >= thr, classes[buy_col], classes[1 - buy_col])
-            return pd.Series(pred_encoded, index=df_block.index), pd.Series(prob_buy, index=df_block.index)
+            # Fix 5: binary:logistic → classes=[0,1], proba[:,1] = P(BUY=1)
+            classes    = list(model.classes_)
+            buy_idx    = classes.index(1) if 1 in classes else 1   # luôn là 1
+            prob_buy   = proba[:, buy_idx]
+            thr        = float(optimal_threshold) if optimal_threshold else 0.5
+            pred_int   = np.where(prob_buy >= thr, 1, 0).astype(int)
+            return (pd.Series(pred_int, index=df_block.index),
+                    pd.Series(prob_buy, index=df_block.index))
+
         preds = pd.Series(model.predict(X), index=df_block.index)
         return preds, pd.Series(np.nan, index=df_block.index)
 
+    def _engineer_features_for_inference_loose(df_raw: pd.DataFrame) -> pd.DataFrame:
+        """
+        Engineer features cho inference nhưng không dropna toàn bộ hàng.
+        Mục tiêu: vẫn có dự đoán cho ngày mới nhất khi macro feature bị thiếu tạm thời.
+        """
+        dfx = df_raw.copy()
+        grp = dfx.groupby("gold_code", dropna=False)
+        dfx["daily_ret"] = grp["sell_price"].pct_change() * 100
+        dfx["world_ret"] = grp["world_price_vnd"].pct_change() * 100
+        dfx["premium_pct"] = dfx["sell_price"] / dfx["world_price_vnd"].replace(0, np.nan) * 100
+        dfx["spread_pct"] = (dfx["sell_price"] - dfx["buy_price"]) / dfx["buy_price"].replace(0, np.nan) * 100
+        drop = ["buy_price", "sell_price", "world_price_vnd", "domestic_premium", "MA5", "MA20", "MA50"]
+        dfx = dfx.drop(columns=[c for c in drop if c in dfx.columns])
+        dfx = pd.get_dummies(dfx, columns=["gold_code"], drop_first=False)
+        dum = [c for c in dfx.columns if c.startswith("gold_code_")]
+        if dum:
+            dfx[dum] = dfx[dum].astype("int8")
+        dfx = dfx.replace([np.inf, -np.inf], np.nan)
+        dfx = dfx.sort_values("timestamp").reset_index(drop=True)
+        dfx = dfx.ffill().bfill().fillna(0)
+        return dfx
+
     df_with_target["prediction"], df_with_target["prob_buy"] = _predict_block(df_with_target)
 
-    # Inference cho 3 ngày cuối (không cần data 3 ngày sau):
-    # df đã có lag features từ add_lag_features trên toàn bộ dataset
-    last_dates = sorted(df["timestamp"].dropna().unique())[-3:]
-    df_last = df[df["timestamp"].isin(last_dates)].copy()
-    if not df_last.empty:
-        df_last["future_sell_price_3d"] = df_last["sell_price"].values  # placeholder
-        df_last["expected_profit"] = 0.0
-        df_last["current_spread"] = (df_last["sell_price"] - df_last["buy_price"]).values
-        df_last["target_trend"] = "NOT_BUY" if binary_mode else "HOLD"
-        df_last["target_encoded"] = 1
-        try:
-            df_last = engineer_features(df_last)
-            if not df_last.empty and target_col in df_last.columns:
-                df_last["prediction"], df_last["prob_buy"] = _predict_block(df_last)
-                df_with_target = pd.concat([df_with_target, df_last], ignore_index=True)
-        except Exception:
-            pass
+    # Inference cho `horizon` ngày cuối (không có future target).
+    # Quan trọng: phải engineer trên FULL dataset để pct_change/rolling không bị NaN hàng loạt.
+    try:
+        cutoff_date = df_with_target["timestamp"].max() if not df_with_target.empty else None
+        infer_dates = sorted(df["timestamp"].dropna().unique())
+        if cutoff_date is not None:
+            infer_dates = [d for d in infer_dates if d > cutoff_date]
+        else:
+            infer_dates = infer_dates[-horizon:]
+        infer_full = df.copy()
+        infer_full["target"] = 0
+        infer_full["target_encoded"] = 0
+        infer_full = engineer_features(infer_full)
+        if not infer_full.empty:
+            infer_last = infer_full[infer_full["timestamp"].isin(infer_dates)].copy()
+            if infer_last.empty:
+                # Fallback: nếu engineer_features(dropna) loại hết ngày mới,
+                # dùng bản "loose" để vẫn phát tín hiệu realtime.
+                infer_full = _engineer_features_for_inference_loose(df.copy())
+                if target_col not in infer_full.columns:
+                    infer_full[target_col] = 0
+                infer_last = infer_full[infer_full["timestamp"].isin(infer_dates)].copy()
+            if not infer_last.empty and target_col in infer_last.columns:
+                infer_last["prediction"], infer_last["prob_buy"] = _predict_block(infer_last)
+                df_with_target = pd.concat([df_with_target, infer_last], ignore_index=True)
+    except Exception:
+        pass
 
     df = df_with_target
     if gold_code and gold_code.strip():
@@ -274,16 +315,26 @@ def _run_pipeline_and_predict(gold_code: str | None = None):
         pred_per_day = pred_per_day.merge(prob_per_day, on="date", how="left")
     merge = daily_price.merge(pred_per_day, on="date", how="left")
     merge = merge.sort_values("date").tail(MAX_POINTS)
-    merge["prediction_label"] = merge["prediction"].apply(
-        lambda i: LABELS[int(i)] if pd.notna(i) else None
-    )
+    def _int_to_label(val):
+        if pd.isna(val):
+            return None
+        try:
+            idx = int(val)
+            return LABELS[idx] if 0 <= idx < len(LABELS) else str(val)
+        except (ValueError, TypeError):
+            return str(val) if str(val) in LABELS else None
+    merge["prediction_label"] = merge["prediction"].apply(_int_to_label)
     merge["prob_buy_label"] = merge.get("prob_buy", None)
 
     # Gắn feature theo ngày (cùng thứ tự với merge) cho biểu đồ phía dưới
     feature_series = {}
     if daily_feat is not None:
         feat_merge = merge[["date"]].merge(daily_feat, on="date", how="left")
-        for col in ["premium_pct", "domestic_premium", "RSI_14", "cum_return_3d_pct", "cum_return_7d_pct", "world_price_vnd"]:
+        # Hỗ trợ cả tên cột script cũ (_pct suffix) và mới (không có _pct)
+        _col_map = {"cum_return_3d_pct": "cum_return_3d", "cum_return_7d_pct": "cum_return_7d"}
+        for col in ["premium_pct", "domestic_premium", "RSI_14",
+                    "cum_return_3d_pct", "cum_return_7d_pct",
+                    "cum_return_3d", "cum_return_7d", "world_price_vnd"]:
             if col in feat_merge.columns:
                 feature_series[col] = [float(x) if pd.notna(x) else None for x in feat_merge[col]]
 
@@ -344,6 +395,57 @@ def _run_pipeline_and_predict(gold_code: str | None = None):
                 "updated_price_note": "",
             }
     return out
+
+
+def _fallback_payload_without_model(gold_code: str | None = None) -> dict | None:
+    """
+    Fallback khi thiếu model/scaler: vẫn trả dữ liệu giá để frontend render,
+    predictions để N/A để tránh dashboard bị kẹt "Đang tải...".
+    """
+    df = pd.read_csv(_get_master_path())
+    df = _normalize_master_columns(df)
+    if "timestamp" not in df.columns or "sell_price" not in df.columns:
+        return None
+    df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
+    df = df.dropna(subset=["timestamp"]).copy()
+    if "gold_code" not in df.columns:
+        df["gold_code"] = None
+    if gold_code and gold_code.strip():
+        selected = GOLD_GROUP_MAP.get(gold_code.strip())
+        if selected is None:
+            return None
+        df = df[df["gold_code"].isin(selected)].copy()
+        if df.empty:
+            return None
+
+    daily_price = (
+        df.groupby(df["timestamp"].dt.normalize())["sell_price"]
+        .mean()
+        .reset_index()
+    )
+    daily_price.columns = ["date", "price"]
+    daily_price = daily_price.sort_values("date").tail(MAX_POINTS)
+    predictions = ["N/A"] * len(daily_price)
+
+    latest_price = float(daily_price["price"].iloc[-1]) if len(daily_price) else None
+    latest_date = str(daily_price["date"].iloc[-1]) if len(daily_price) else None
+    return {
+        "gold_code": gold_code.strip() if gold_code and gold_code.strip() else None,
+        "gold_codes": _get_gold_codes(),
+        "labels": _get_labels(),
+        "dates": daily_price["date"].astype(str).tolist(),
+        "prices": daily_price["price"].round(0).tolist(),
+        "predictions": predictions,
+        "probabilities": [None] * len(daily_price),
+        "features": {},
+        "latest": {
+            "date": latest_date,
+            "price": latest_price,
+            "prediction": None,
+            "prediction_date": None,
+            "prediction_date_price": None,
+        },
+    }
 
 
 @app.route("/")
@@ -414,8 +516,16 @@ def api_predict():
             return jsonify({"error": "No data or pipeline failed"}), 500
         return jsonify(out)
     except FileNotFoundError as e:
+        fallback = _fallback_payload_without_model(gold_code=gold_code)
+        if fallback is not None:
+            fallback["warning"] = f"Model chưa sẵn sàng ({e}). Đang hiển thị dữ liệu giá, tín hiệu tạm thời là N/A."
+            return jsonify(fallback), 200
         return jsonify({"error": f"File not found: {e}"}), 404
     except Exception as e:
+        fallback = _fallback_payload_without_model(gold_code=gold_code)
+        if fallback is not None:
+            fallback["warning"] = f"Pipeline tạm thời lỗi ({e}). Đang hiển thị dữ liệu giá, tín hiệu tạm thời là N/A."
+            return jsonify(fallback), 200
         return jsonify({"error": str(e)}), 500
 
 
@@ -498,19 +608,24 @@ if __name__ == "__main__":
     except ImportError:
         from sheet_sync import sync_master_from_google_sheet
     master_path = NEW_FOLDER / "master_dss_dataset.csv"
-    synced = sync_master_from_google_sheet(master_path)
-    if synced is None:
-        print("[Sheet sync] Sync bỏ qua (xem log trên để biết lý do).")
-    elif synced == 0:
-        print("[Sheet sync] Không có dòng mới từ Sheet so với master.")
-    elif synced > 0:
-        g = globals()
-        g["_master_path_cache"] = None
-        g["_gold_codes_cache"] = None
+    try:
+        synced = sync_master_from_google_sheet(master_path)
+        if synced is None:
+            print("[Sheet sync] Sync bo qua (xem log tren de biet ly do).")
+        elif synced == 0:
+            print("[Sheet sync] Khong co dong moi tu Sheet so voi master.")
+        elif synced > 0:
+            g = globals()
+            g["_master_path_cache"] = None
+            g["_gold_codes_cache"] = None
+    except Exception as e:
+        # On some Windows terminals, non-ASCII log lines can raise UnicodeEncodeError.
+        # Do not stop the server because of sync logging problems.
+        print(f"[Sheet sync] Skip sync due to error: {e}")
     # Nếu synced is None: không cấu hình Sheet hoặc lỗi, bỏ qua
 
     if not MODEL_PATH.exists():
-        print("Model not found at", MODEL_PATH, "- train first (New folder/train_xgboost_dss.py)")
+        print("Model not found. Train first with train_xgboost_gold.py")
     else:
         print("Open http://127.0.0.1:5000 in browser")
     app.run(host="0.0.0.0", port=5000, debug=False)

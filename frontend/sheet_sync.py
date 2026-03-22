@@ -146,12 +146,12 @@ def fetch_sheet_as_dataframe(sheet_id: str, credentials_path: str | None = None)
             "gold_code": gold,
             "buy_price": buy,
             "sell_price": sell,
-            "usd_vnd_rate": usd_vnd if usd_vnd is not None else 0.0,
-            "fed_rate": fed if fed is not None else 0.0,
+            "usd_vnd_rate": usd_vnd,
+            "fed_rate": fed,
             "cpi_inflation_yoy": cpi,
-            "dxy_index": dxy if dxy is not None else 0.0,
-            "interest_rate_state": ir_state if ir_state is not None else 0.0,
-            "interest_rate_market": ir_market if ir_market is not None else 0.0,
+            "dxy_index": dxy,
+            "interest_rate_state": ir_state,
+            "interest_rate_market": ir_market,
         }
         data.append(row_out)
 
@@ -185,12 +185,15 @@ def sync_master_from_google_sheet(
         _log("Không lấy được dữ liệu từ Sheet (fetch trả về None hoặc rỗng).")
         return None
 
-    # Thêm cột master cần mà sheet không có (pipeline dùng world_price_vnd, domestic_premium)
+    # Thêm cột master cần mà sheet không có.
+    # KHÔNG gán giả world_price_vnd = sell_price vì làm sai premium.
     df_sheet["interest_rate_spread"] = (
-        df_sheet["interest_rate_market"].fillna(0) - df_sheet["interest_rate_state"].fillna(0)
+        pd.to_numeric(df_sheet["interest_rate_market"], errors="coerce")
+        - pd.to_numeric(df_sheet["interest_rate_state"], errors="coerce")
     )
-    df_sheet["World_Price_VND"] = df_sheet["sell_price"].values  # placeholder: coi premium = 0
-    df_sheet["Domestic_Premium"] = 0.0
+    df_sheet["World_Price_USD_Ounce"] = pd.NA
+    df_sheet["World_Price_VND"] = pd.NA
+    df_sheet["Domestic_Premium"] = pd.NA
 
     # Đọc master hiện tại
     if not master_path.exists():
@@ -242,6 +245,35 @@ def sync_master_from_google_sheet(
     df_merged = pd.concat([df_master, df_new], ignore_index=True)
     df_merged = df_merged.drop_duplicates(subset=key_cols, keep="last")
     df_merged = df_merged.sort_values(key_cols).reset_index(drop=True)
+
+    # Backfill nhẹ cho các cột vĩ mô thiếu ở bản ghi mới:
+    # dùng giá trị gần nhất theo gold_code để tránh NaN hàng loạt, nhưng không tạo dữ liệu giả từ sell_price.
+    fill_cols = [
+        "World_Price_USD_Ounce",
+        "World_Price_VND",
+        "usd_vnd_rate",
+        "dxy_index",
+        "fed_rate",
+        "interest_rate_state",
+        "interest_rate_market",
+        "interest_rate_spread",
+    ]
+    for c in fill_cols:
+        if c in df_merged.columns:
+            df_merged[c] = pd.to_numeric(df_merged[c], errors="coerce")
+    if "gold_code" in df_merged.columns:
+        for c in fill_cols:
+            if c in df_merged.columns:
+                df_merged[c] = (
+                    df_merged.groupby("gold_code", dropna=False)[c]
+                    .ffill()
+                    .bfill()
+                )
+    if {"sell_price", "World_Price_VND", "Domestic_Premium"}.issubset(df_merged.columns):
+        wp = pd.to_numeric(df_merged["World_Price_VND"], errors="coerce").replace(0, pd.NA)
+        sp = pd.to_numeric(df_merged["sell_price"], errors="coerce")
+        df_merged["Domestic_Premium"] = sp - wp
+
     try:
         df_merged.to_csv(master_path, index=False, date_format="%Y-%m-%d")
     except Exception as e:

@@ -1,0 +1,28 @@
+XGBoost Gold VN — Kết quả đánh giá (test set)
+====================================================
+Threshold tối ưu : 0.15
+F1-macro         : 0.5613
+F1-weighted      : 0.5672
+BUY Precision    : 0.4791  (3199/6677 tín hiệu BUY đúng)
+BUY Recall       : 0.5841  (bắt được 3199/5477 cơ hội thực)
+
+Classification report:
+              precision    recall  f1-score   support
+
+     NOT_BUY       0.65      0.55      0.60      7726
+         BUY       0.48      0.58      0.53      5477
+
+    accuracy                           0.56     13203
+   macro avg       0.57      0.57      0.56     13203
+weighted avg       0.58      0.56      0.57     13203
+
+Confusion matrix (hàng=thực tế, cột=dự đoán):
+                  NOT_BUY    BUY
+  Thực tế NOT_BUY    4248    3478
+  Thực tế BUY        2278    3199
+
+Giải thích:
+  TN= 4248  Nói NOT_BUY đúng  (tránh mua lúc không tốt)
+  FP= 3478  Nói BUY sai       (báo mua nhưng giá không tăng)
+  FN= 2278  Bỏ lỡ BUY tốt    (không mua khi đáng mua)
+  TP= 3199  Nói BUY đúng      (mua vào, giá tăng đúng dự đoán)

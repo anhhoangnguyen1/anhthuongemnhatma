@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,7 +22,11 @@
       --sell: #ef4444;
       --not_buy: #60a5fa;
     }
-    * { box-sizing: border-box; }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
       margin: 0;
@@ -30,6 +35,7 @@
       color: var(--text);
       min-height: 100vh;
     }
+
     .dashboard-header {
       display: flex;
       flex-wrap: wrap;
@@ -40,6 +46,7 @@
       padding-bottom: 1rem;
       border-bottom: 1px solid var(--card-border);
     }
+
     .dashboard-header h1 {
       margin: 0;
       font-size: 1.75rem;
@@ -47,18 +54,21 @@
       color: var(--text);
       letter-spacing: -0.02em;
     }
+
     .dashboard-subtitle {
       margin: 0.25rem 0 0 0;
       font-size: 0.9rem;
       color: var(--text-muted);
       font-weight: 400;
     }
+
     .header-actions {
       display: flex;
       align-items: center;
       gap: 0.75rem;
       flex-wrap: wrap;
     }
+
     .pill {
       padding: 0.5rem 1rem;
       border-radius: 999px;
@@ -69,39 +79,50 @@
       color: var(--text);
       border: 1px solid var(--card-border);
     }
-    .pill.mode { background: rgba(34, 197, 94, 0.2); color: #86efac; border-color: rgba(34, 197, 94, 0.4); }
+
+    .pill.mode {
+      background: rgba(34, 197, 94, 0.2);
+      color: #86efac;
+      border-color: rgba(34, 197, 94, 0.4);
+    }
+
     .card {
       background: var(--card);
       border-radius: 14px;
       padding: 1.25rem 1.5rem;
       margin-bottom: 1.25rem;
       border: 1px solid var(--card-border);
-      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.15);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.15);
     }
+
     .card-title {
       margin: 0 0 0.5rem 0;
       font-size: 1rem;
       font-weight: 600;
       color: var(--text);
     }
+
     .card-subtitle {
       margin: 0 0 0.75rem 0;
       font-size: 0.8rem;
       color: var(--text-muted);
     }
+
     .metrics-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 1rem;
       margin-bottom: 1.5rem;
     }
+
     .metric-card {
       background: var(--card);
       border-radius: 14px;
       padding: 1.25rem;
       border: 1px solid var(--card-border);
-      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.15);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.15);
     }
+
     .metric-card .label {
       font-size: 0.75rem;
       text-transform: uppercase;
@@ -109,38 +130,106 @@
       color: var(--text-muted);
       margin-bottom: 0.5rem;
     }
+
     .metric-card .value {
       font-size: 1.5rem;
       font-weight: 700;
       color: var(--text);
     }
-    .metric-card .value.green { color: var(--buy); }
-    .metric-card .value.blue { color: #3b82f6; }
-    .metric-card .value.amber { color: var(--hold); }
-    .metric-card .value.purple { color: #a78bfa; }
-    .metric-card .extra { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.35rem; }
-    .prediction-row { display: flex; align-items: center; justify-content: center; gap: 1rem; flex-wrap: wrap; }
+
+    .metric-card .value.green {
+      color: var(--buy);
+    }
+
+    .metric-card .value.blue {
+      color: #3b82f6;
+    }
+
+    .metric-card .value.amber {
+      color: var(--hold);
+    }
+
+    .metric-card .value.purple {
+      color: #a78bfa;
+    }
+
+    .metric-card .extra {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.35rem;
+    }
+
+    .prediction-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
     .prediction-badge {
       font-size: 1.1rem;
       font-weight: 700;
       padding: 0.5rem 1rem;
       border-radius: 10px;
     }
-    .prediction-badge.buy     { background: rgba(34, 197, 94, 0.25); color: #86efac; }
-    .prediction-badge.hold    { background: rgba(234, 179, 8, 0.25); color: #fde047; }
-    .prediction-badge.sell    { background: rgba(239, 68, 68, 0.25); color: #fca5a5; }
-    .prediction-badge.not_buy { background: rgba(96, 165, 250, 0.25); color: #93c5fd; }
-    .prediction-badge.na      { background: var(--card); color: var(--text-muted); }
-    .latest-meta { color: var(--text-muted); font-size: 0.9rem; }
-    .chart-wrap { position: relative; height: 360px; }
+
+    .prediction-badge.buy {
+      background: rgba(34, 197, 94, 0.25);
+      color: #86efac;
+    }
+
+    .prediction-badge.hold {
+      background: rgba(234, 179, 8, 0.25);
+      color: #fde047;
+    }
+
+    .prediction-badge.sell {
+      background: rgba(239, 68, 68, 0.25);
+      color: #fca5a5;
+    }
+
+    .prediction-badge.not_buy {
+      background: rgba(96, 165, 250, 0.25);
+      color: #93c5fd;
+    }
+
+    .prediction-badge.na {
+      background: var(--card);
+      color: var(--text-muted);
+    }
+
+    .latest-meta {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 360px;
+    }
+
     .charts-row {
       display: grid;
       grid-template-columns: 1fr 320px;
       gap: 1.25rem;
       margin-bottom: 1.25rem;
     }
-    @media (max-width: 900px) { .charts-row { grid-template-columns: 1fr; } }
-    .donut-wrap { position: relative; height: 320px; display: flex; align-items: center; justify-content: center; }
+
+    @media (max-width: 900px) {
+      .charts-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .donut-wrap {
+      position: relative;
+      height: 320px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
     .error-msg {
       background: rgba(239, 68, 68, 0.15);
       color: #fca5a5;
@@ -149,10 +238,27 @@
       margin: 1rem 0;
       border: 1px solid rgba(239, 68, 68, 0.3);
     }
-    .loading { color: var(--text-muted); }
-    .card-dropdown { margin-bottom: 1rem; }
-    .dropdown-label { margin: 0 0 0.5rem 0; font-size: 0.95rem; color: var(--text); }
-    .dropdown-row { flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+
+    .loading {
+      color: var(--text-muted);
+    }
+
+    .card-dropdown {
+      margin-bottom: 1rem;
+    }
+
+    .dropdown-label {
+      margin: 0 0 0.5rem 0;
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+
+    .dropdown-row {
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
     .gold-code-select {
       min-width: 220px;
       padding: 0.5rem 0.75rem;
@@ -163,19 +269,33 @@
       border: 1px solid var(--card-border);
       cursor: pointer;
     }
-    .gold-code-select:hover, .gold-code-select:focus { border-color: var(--accent); outline: none; }
-    input[type=checkbox] { accent-color: var(--accent); cursor: pointer; }
+
+    .gold-code-select:hover,
+    .gold-code-select:focus {
+      border-color: var(--accent);
+      outline: none;
+    }
+
+    input[type=checkbox] {
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
     .modal-overlay {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.65);
+      background: rgba(0, 0, 0, 0.65);
       z-index: 100;
       align-items: center;
       justify-content: center;
       padding: 1rem;
     }
-    .modal-overlay.show { display: flex; }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
     .modal-box {
       background: var(--card);
       border: 1px solid var(--card-border);
@@ -186,8 +306,9 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 24px 48px rgba(0,0,0,0.4);
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
     }
+
     .modal-header {
       padding: 1rem 1.25rem;
       border-bottom: 1px solid var(--card-border);
@@ -195,7 +316,13 @@
       justify-content: space-between;
       align-items: center;
     }
-    .modal-header h3 { margin: 0; font-size: 1.1rem; color: var(--text); }
+
+    .modal-header h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      color: var(--text);
+    }
+
     .modal-close {
       background: none;
       border: none;
@@ -205,21 +332,41 @@
       line-height: 1;
       padding: 0 0.25rem;
     }
-    .modal-close:hover { color: var(--text); }
+
+    .modal-close:hover {
+      color: var(--text);
+    }
+
     .modal-body {
       padding: 1rem 1.25rem;
       overflow-y: auto;
       flex: 1;
     }
-    .modal-body .date-meta { color: var(--text-muted); margin-bottom: 0.75rem; font-size: 0.9rem; }
-    .modal-body .news-list { margin: 0.75rem 0; }
+
+    .modal-body .date-meta {
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+      font-size: 0.9rem;
+    }
+
+    .modal-body .news-list {
+      margin: 0.75rem 0;
+    }
+
     .modal-body .news-item {
       padding: 0.5rem 0;
       border-bottom: 1px solid var(--card-border);
       font-size: 0.9rem;
     }
-    .modal-body .news-item:last-child { border-bottom: none; }
-    .modal-body .news-item strong { color: var(--text); }
+
+    .modal-body .news-item:last-child {
+      border-bottom: none;
+    }
+
+    .modal-body .news-item strong {
+      color: var(--text);
+    }
+
     .modal-body .supplement-box {
       margin-top: 1rem;
       padding: 1rem;
@@ -227,11 +374,27 @@
       border-radius: 10px;
       border-left: 4px solid var(--accent);
     }
-    .modal-body .supplement-box h4 { margin: 0 0 0.5rem 0; font-size: 1rem; color: #a5b4fc; }
-    .chart-wrap canvas { cursor: pointer; }
-    .llm-inner { margin-top: 0.75rem; padding: 1rem; background: rgba(99, 102, 241, 0.08); border-radius: 10px; border-left: 4px solid var(--accent); }
+
+    .modal-body .supplement-box h4 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1rem;
+      color: #a5b4fc;
+    }
+
+    .chart-wrap canvas {
+      cursor: pointer;
+    }
+
+    .llm-inner {
+      margin-top: 0.75rem;
+      padding: 1rem;
+      background: rgba(99, 102, 241, 0.08);
+      border-radius: 10px;
+      border-left: 4px solid var(--accent);
+    }
   </style>
 </head>
+
 <body>
   <header class="dashboard-header">
     <div>
@@ -239,7 +402,7 @@
       <p class="dashboard-subtitle">Dự đoán tín hiệu vàng với mô hình XGBoost &amp; đánh giá tin tức (LLM)</p>
     </div>
     <div class="header-actions">
-      <span class="pill mode" id="mode-pill">Chế độ: BUY / HOLD / SELL</span>
+      <span class="pill mode" id="mode-pill">Chế độ: BUY / NOT_BUY</span>
       <span class="pill" id="data-pill">Dữ liệu realtime</span>
     </div>
   </header>
@@ -258,7 +421,7 @@
     <div class="metric-card">
       <div class="label">Phân bố khuyến nghị (90 ngày)</div>
       <div class="value amber" id="metric-distribution">--</div>
-      <div class="extra" id="metric-distribution-detail">BUY / HOLD / SELL</div>
+      <div class="extra" id="metric-distribution-detail">BUY / NOT_BUY</div>
     </div>
     <div class="metric-card">
       <div class="label">Mã vàng</div>
@@ -272,8 +435,9 @@
     <div class="prediction-row dropdown-row">
       <select id="gold-code" class="gold-code-select" title="Chọn mã vàng">
         <option value="">Trung bình tất cả</option>
-        <option value="SJL1L10">Vàng miếng SJC 9999 (SJL1L10)</option>
-        <option value="DOJINHTV">Vàng nữ trang DOJI (DOJINHTV)</option>
+        <option value="SJC_BAR">Vàng miếng SJC</option>
+        <option value="JEWELRY_9999">Nữ trang 9999</option>
+        <option value="DOJI_PLAIN_RING">Vàng nhẫn trơn DOJI</option>
       </select>
     </div>
   </div>
@@ -288,7 +452,7 @@
     </div>
     <div class="card">
       <h2 class="card-title">Phân bố khuyến nghị</h2>
-      <p class="card-subtitle">Tỷ lệ BUY / HOLD / SELL trong 90 ngày (từ model)</p>
+      <p class="card-subtitle">Tỷ lệ BUY / NOT_BUY trong 90 ngày (từ model)</p>
       <div class="donut-wrap">
         <canvas id="donut-chart"></canvas>
       </div>
@@ -300,16 +464,20 @@
     <h2 class="card-title">Chỉ số vĩ mô – Lãi suất FED &amp; DXY (1 năm)</h2>
     <p class="card-subtitle">FED: dữ liệu FRED (fallback 4.5% nếu timeout). Bật/tắt series bên dưới.</p>
     <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:0.75rem;">
-      <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;color:var(--text-muted);">
-        <input type="checkbox" id="tog-fed"   checked> <span style="color:#f59e0b;">●</span> Lãi suất FED (%)
+      <label
+        style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;color:var(--text-muted);">
+        <input type="checkbox" id="tog-fed" checked> <span style="color:#f59e0b;">●</span> Lãi suất FED (%)
       </label>
-      <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;color:var(--text-muted);">
-        <input type="checkbox" id="tog-dxy"   checked> <span style="color:#38bdf8;">●</span> DXY Index
+      <label
+        style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;color:var(--text-muted);">
+        <input type="checkbox" id="tog-dxy" checked> <span style="color:#38bdf8;">●</span> DXY Index
       </label>
-      <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;color:var(--text-muted);">
-        <input type="checkbox" id="tog-vn"    checked> <span style="color:#a78bfa;">●</span> Lãi suất VN (%)
+      <label
+        style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;color:var(--text-muted);">
+        <input type="checkbox" id="tog-vn" checked> <span style="color:#a78bfa;">●</span> Lãi suất VN (%)
       </label>
-      <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;color:var(--text-muted);">
+      <label
+        style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;color:var(--text-muted);">
         <input type="checkbox" id="tog-world"> <span style="color:#4ade80;">●</span> Vàng thế giới (USD/oz)
       </label>
     </div>
@@ -353,10 +521,14 @@
         <div class="news-list" id="date-detail-news"></div>
         <div class="supplement-box" id="date-detail-supplement">
           <h4>Dự đoán bổ sung từ tin tức</h4>
-          <p style="margin:0.25rem 0;"><strong>Tín hiệu:</strong> <span id="date-detail-signal" class="prediction-badge">--</span></p>
-          <p style="margin:0.25rem 0; color:#cbd5e1;"><strong>Lý do:</strong> <span id="date-detail-reasoning"></span></p>
-          <p style="margin:0.25rem 0; color:#94a3b8;"><strong>Độ tin cậy:</strong> <span id="date-detail-confidence"></span></p>
-          <p style="margin:0.25rem 0; color:#94a3b8;"><strong>Ghi chú giá:</strong> <span id="date-detail-price-note"></span></p>
+          <p style="margin:0.25rem 0;"><strong>Tín hiệu:</strong> <span id="date-detail-signal"
+              class="prediction-badge">--</span></p>
+          <p style="margin:0.25rem 0; color:#cbd5e1;"><strong>Lý do:</strong> <span id="date-detail-reasoning"></span>
+          </p>
+          <p style="margin:0.25rem 0; color:#94a3b8;"><strong>Độ tin cậy:</strong> <span
+              id="date-detail-confidence"></span></p>
+          <p style="margin:0.25rem 0; color:#94a3b8;"><strong>Ghi chú giá:</strong> <span
+              id="date-detail-price-note"></span></p>
         </div>
         <p class="loading" id="date-detail-loading" style="display:none;">Đang tải tin và dự đoán bổ sung...</p>
       </div>
@@ -370,7 +542,7 @@
         Chart.defaults.color = '#94a3b8';
         if (Chart.defaults.borderColor !== undefined) Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
       }
-    } catch (e) {}
+    } catch (e) { }
 
     function getChartCtx() {
       var el = document.getElementById('chart');
@@ -380,7 +552,7 @@
     let donutChart = null;
     let featurePremiumChart = null;
     let featureRsiChart = null;
-    let _labels = ['BUY', 'HOLD', 'SELL'];
+    let _labels = ['NOT_BUY', 'BUY'];  // khớp model.classes_ = [0=NOT_BUY, 1=BUY]
     let _chartDates = [];
 
     function predClass(pred) {
@@ -402,8 +574,10 @@
       document.getElementById('metric-price').textContent = latest.price != null ? Number(latest.price).toLocaleString('vi-VN') + ' VND' : '--';
       document.getElementById('metric-date').textContent = latest.date ? latest.date.slice(0, 10) : '--';
       document.getElementById('latest-pred-date').textContent = latest.prediction_date ? '(ngày ' + latest.prediction_date.slice(0, 10) + ')' : '';
-      document.getElementById('metric-gold-code').textContent = goldCode ? goldCode : 'Trung bình tất cả';
-      document.getElementById('gold-code-hint').textContent = goldCode ? 'Mã: ' + goldCode : 'Chọn mã để xem chi tiết';
+      const sel = document.getElementById('gold-code');
+      const selectedText = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : '';
+      document.getElementById('metric-gold-code').textContent = goldCode ? (selectedText || goldCode) : 'Trung bình tất cả';
+      document.getElementById('gold-code-hint').textContent = goldCode ? ('Nhóm: ' + (selectedText || goldCode)) : 'Chọn nhóm để xem chi tiết';
 
       const title = document.getElementById('chart-title');
       if (goldCode) {
@@ -445,14 +619,14 @@
       _chartDates = (data.dates || []).map(d => (typeof d === 'string' ? d : String(d)).slice(0, 10));
       const prices = data.prices || [];
       const preds = data.predictions || [];
-      const probs   = data.probabilities || [];
+      const probs = data.probabilities || [];
       const colors = preds.map((p, i) => {
         if (p === 'N/A' || p == null) return 'rgba(0,0,0,0)';
         const prob = (probs[i] != null) ? probs[i] : (p === 'BUY' ? 0.7 : 0.3);
-        if (p === 'BUY')     return `rgba(34,197,94,${Math.max(0.3, prob).toFixed(2)})`;
-        if (p === 'NOT_BUY') return `rgba(96,165,250,${Math.max(0.3, 1-prob).toFixed(2)})`;
-        if (p === 'SELL')    return 'rgba(239,68,68,0.85)';
-        if (p === 'HOLD')    return 'rgba(234,179,8,0.85)';
+        if (p === 'BUY') return `rgba(34,197,94,${Math.max(0.3, prob).toFixed(2)})`;
+        if (p === 'NOT_BUY') return `rgba(96,165,250,${Math.max(0.3, 1 - prob).toFixed(2)})`;
+        if (p === 'SELL') return 'rgba(239,68,68,0.85)';
+        if (p === 'HOLD') return 'rgba(234,179,8,0.85)';
         return 'rgba(0,0,0,0)';
       });
 
@@ -489,7 +663,7 @@
           responsive: true,
           maintainAspectRatio: false,
           interaction: { intersect: false, mode: 'index' },
-          onClick: function(evt, elements) {
+          onClick: function (evt, elements) {
             if (elements.length > 0 && _chartDates.length > 0) {
               const idx = elements[0].index;
               if (idx >= 0 && idx < _chartDates.length) {
@@ -501,16 +675,16 @@
             legend: { position: 'top' },
             tooltip: {
               callbacks: {
-                afterLabel: function(ctx) {
+                afterLabel: function (ctx) {
                   const p = preds[ctx.dataIndex];
                   const prob = probs[ctx.dataIndex];
-                  let label = 'Dự đoán: ' + (p && p !== 'N/A' ? p : 'chưa có (cần dữ liệu 3 ngày sau)');
+                  let label = 'Dự đoán: ' + (p && p !== 'N/A' ? p : 'chưa có (cần dữ liệu 7 ngày sau)');
                   if (prob != null && p && p !== 'N/A') {
                     label += '  (xác suất BUY: ' + Math.round(prob * 100) + '%)';
                   }
                   return label;
                 },
-                label: function(ctx) {
+                label: function (ctx) {
                   const v = ctx.raw;
                   return (ctx.dataset.label || '') + ': ' + (typeof v === 'number' ? v.toLocaleString('vi-VN') + ' VND' : v);
                 },
@@ -570,7 +744,7 @@
             legend: { position: 'bottom' },
             tooltip: {
               callbacks: {
-                label: function(ctx) {
+                label: function (ctx) {
                   const v = ctx.raw;
                   const d = data[ctx.dataIndex];
                   return ctx.label + ': ' + v + '% (' + (d ? d.count : 0) + ' ngày)';
@@ -620,7 +794,7 @@
       var hasReturn3 = features.cum_return_3d_pct && features.cum_return_3d_pct.length;
       var hasReturn7 = features.cum_return_7d_pct && features.cum_return_7d_pct.length;
 
-      var labels = dates.map(function(d) { return (d || '').slice(0, 10); });
+      var labels = dates.map(function (d) { return (d || '').slice(0, 10); });
       var gridOpt = { color: 'rgba(255,255,255,0.06)' };
       var ticksOpt = { color: '#94a3b8', maxTicksLimit: 12 };
 
@@ -630,7 +804,7 @@
           if (featurePremiumChart) featurePremiumChart.destroy();
           var ds = [];
           if (hasPremium) ds.push({ label: 'Premium nội địa (%)', data: features.premium_pct, borderColor: '#a78bfa', backgroundColor: 'rgba(167,139,250,0.15)', fill: true, tension: 0.2, pointRadius: 0, yAxisID: 'yPct' });
-          if (hasWorld) ds.push({ label: 'Giá TG quy VND (tr)', data: features.world_price_vnd.map(function(v) { return v != null ? v / 1e6 : null; }), borderColor: '#38bdf8', backgroundColor: 'rgba(56,189,248,0.1)', fill: true, tension: 0.2, pointRadius: 0, yAxisID: 'yVnd' });
+          if (hasWorld) ds.push({ label: 'Giá TG quy VND (tr)', data: features.world_price_vnd.map(function (v) { return v != null ? v / 1e6 : null; }), borderColor: '#38bdf8', backgroundColor: 'rgba(56,189,248,0.1)', fill: true, tension: 0.2, pointRadius: 0, yAxisID: 'yVnd' });
           featurePremiumChart = new Chart(canvasPremium.getContext('2d'), {
             type: 'line',
             data: { labels: labels, datasets: ds },
@@ -640,7 +814,7 @@
               interaction: { intersect: false, mode: 'index' },
               scales: {
                 x: { ticks: ticksOpt, grid: gridOpt },
-                yPct: { type: 'linear', position: 'left', title: { display: true, text: 'Premium (%)', color: '#94a3b8' }, ticks: Object.assign({}, ticksOpt, { callback: function(v) { return v + '%'; } }), grid: gridOpt },
+                yPct: { type: 'linear', position: 'left', title: { display: true, text: 'Premium (%)', color: '#94a3b8' }, ticks: Object.assign({}, ticksOpt, { callback: function (v) { return v + '%'; } }), grid: gridOpt },
                 yVnd: { type: 'linear', position: 'right', title: { display: true, text: 'VND (triệu)', color: '#94a3b8' }, ticks: ticksOpt, grid: { drawOnChartArea: false } },
               },
               plugins: { legend: { position: 'top' } },
@@ -667,7 +841,7 @@
               scales: {
                 x: { ticks: ticksOpt, grid: gridOpt },
                 yRsi: { type: 'linear', position: 'left', min: 0, max: 100, title: { display: true, text: 'RSI', color: '#94a3b8' }, ticks: ticksOpt, grid: gridOpt },
-                yRet: { type: 'linear', position: 'right', title: { display: true, text: 'Lợi nhuận (%)', color: '#94a3b8' }, ticks: Object.assign({}, ticksOpt, { callback: function(v) { return v + '%'; } }), grid: { drawOnChartArea: false } },
+                yRet: { type: 'linear', position: 'right', title: { display: true, text: 'Lợi nhuận (%)', color: '#94a3b8' }, ticks: Object.assign({}, ticksOpt, { callback: function (v) { return v + '%'; } }), grid: { drawOnChartArea: false } },
               },
               plugins: { legend: { position: 'top' } },
             },
@@ -695,8 +869,8 @@
       let url = '/api/date-detail?date=' + encodeURIComponent(dateStr);
       if (goldCode) url += '&gold_code=' + encodeURIComponent(goldCode);
       fetch(url)
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
           loadingEl.style.display = 'none';
           if (data.error && !data.date) {
             meta.textContent = data.error;
@@ -704,7 +878,7 @@
           }
           meta.textContent = 'Giá: ' + (data.price != null ? Number(data.price).toLocaleString('vi-VN') + ' VND' : '—') + ' · Dự đoán ML: ' + (data.ml_prediction || '—');
           newsEl.innerHTML = '';
-          (data.news || []).forEach(function(n) {
+          (data.news || []).forEach(function (n) {
             const div = document.createElement('div');
             div.className = 'news-item';
             div.innerHTML = '<strong>' + (n.title || '').replace(/</g, '&lt;') + '</strong>' + (n.snippet ? '<br><span style="color:#94a3b8;">' + (n.snippet || '').slice(0, 200).replace(/</g, '&lt;') + '</span>' : '');
@@ -725,7 +899,7 @@
             supplementEl.style.display = 'none';
           }
         })
-        .catch(function() {
+        .catch(function () {
           loadingEl.style.display = 'none';
           meta.textContent = 'Không tải được dữ liệu. Kiểm tra kết nối và API key.';
         });
@@ -741,7 +915,7 @@
       const closeBtn = document.getElementById('date-detail-close');
       const overlay = document.getElementById('date-detail-modal');
       if (closeBtn) closeBtn.addEventListener('click', closeDateDetailModal);
-      if (overlay) overlay.addEventListener('click', function(e) { if (e.target === overlay) closeDateDetailModal(); });
+      if (overlay) overlay.addEventListener('click', function (e) { if (e.target === overlay) closeDateDetailModal(); });
     })();
 
     // ─── Macro chart ────────────────────────────────────────────────
@@ -750,10 +924,10 @@
     let _macroData = null;
 
     const MACRO_DATASETS_CFG = [
-      { key: 'fed_rate',   label: 'Lãi suất FED (%)',     color: '#f59e0b', yAxis: 'yRate',   tog: 'tog-fed',   order: 1 },
-      { key: 'vn_rate',    label: 'Lãi suất VN (%)',      color: '#a78bfa', yAxis: 'yRate',   tog: 'tog-vn',    order: 2 },
-      { key: 'dxy_index',  label: 'DXY Index',             color: '#38bdf8', yAxis: 'yDXY',   tog: 'tog-dxy',   order: 3 },
-      { key: 'world_gold', label: 'Vàng TG (USD/oz)',      color: '#4ade80', yAxis: 'yGold',  tog: 'tog-world', order: 4 },
+      { key: 'fed_rate', label: 'Lãi suất FED (%)', color: '#f59e0b', yAxis: 'yRate', tog: 'tog-fed', order: 1 },
+      { key: 'vn_rate', label: 'Lãi suất VN (%)', color: '#a78bfa', yAxis: 'yRate', tog: 'tog-vn', order: 2 },
+      { key: 'dxy_index', label: 'DXY Index', color: '#38bdf8', yAxis: 'yDXY', tog: 'tog-dxy', order: 3 },
+      { key: 'world_gold', label: 'Vàng TG (USD/oz)', color: '#4ade80', yAxis: 'yGold', tog: 'tog-world', order: 4 },
     ];
 
     function buildMacroChart(data) {
@@ -796,7 +970,7 @@
             legend: { display: false },
             tooltip: {
               callbacks: {
-                label: function(ctx) {
+                label: function (ctx) {
                   const v = ctx.raw;
                   const cfg = MACRO_DATASETS_CFG.find(c => c.label === ctx.dataset.label);
                   if (!cfg) return ctx.dataset.label + ': ' + v;
@@ -853,7 +1027,7 @@
           const el = document.getElementById(cfg.tog);
           if (el) el.addEventListener('change', toggleMacroSeries);
         });
-      } catch (e) {}
+      } catch (e) { }
     }
     // ─────────────────────────────────────────────────────────────────
 
@@ -865,4 +1039,5 @@
     })();
   </script>
 </body>
+
 </html>
