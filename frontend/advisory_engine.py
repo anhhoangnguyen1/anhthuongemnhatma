@@ -132,10 +132,10 @@ def _interpret_feature(name: str, value: float) -> str:
 
 # ── Decision matrix ─────────────────────────────────────────────────────────────
 _RECOMMENDATION_LABELS = {
-    "STRONG_BUY": "Nên mua mạnh",
-    "BUY":        "Có thể mua",
-    "WATCH":      "Theo dõi, chờ thêm tín hiệu",
-    "AVOID":      "Không nên mua lúc này",
+    "STRONG_BUY": "MUA MẠNH",
+    "BUY":        "NÊN MUA",
+    "WATCH":      "THEO DÕI",
+    "AVOID":      "CHƯA NÊN MUA",
 }
 
 _RECOMMENDATION_THRESHOLD = 0.17  # fallback nếu config không có

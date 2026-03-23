@@ -1033,7 +1033,8 @@
     function setLatest(latest, goldCode, labels, predictions, probabilities) {
       const pred = latest.prediction || 'N/A';
       const el = document.getElementById('latest-prediction');
-      el.textContent = pred;
+      const transMap = { 'BUY': 'TÍN HIỆU MUA', 'NOT_BUY': 'CHƯA CÓ TÍN HIỆU', 'N/A': 'N/A' };
+      el.textContent = transMap[pred] || pred;
       el.className = 'prediction-badge ' + predClass(pred);
 
       document.getElementById('metric-price').textContent =
