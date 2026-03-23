@@ -20,16 +20,22 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
+from html import unescape
 from datetime import date, datetime, timedelta
+from email.utils import parsedate_to_datetime
 from pathlib import Path
+import importlib
+import xml.etree.ElementTree as ET
 
 import requests
 
 try:
-    import feedparser
+    feedparser = importlib.import_module("feedparser")
     _HAS_FEEDPARSER = True
-except ImportError:
+except Exception:
+    feedparser = None
     _HAS_FEEDPARSER = False
 
 # ── Cấu hình ───────────────────────────────────────────────────────────────────
@@ -114,6 +120,54 @@ _RSS_HEADERS = {
 }
 
 
+def _clean_text(text: str) -> str:
+    """Làm sạch HTML/entity từ RSS snippet để hiển thị gọn trên UI."""
+    if not text:
+        return ""
+    cleaned = re.sub(r"<[^>]+>", " ", str(text))
+    cleaned = unescape(cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned
+
+
+def _parse_rss_entries(content: bytes) -> list[dict]:
+    """Parse RSS XML cơ bản khi feedparser chưa cài."""
+    entries: list[dict] = []
+    try:
+        root = ET.fromstring(content)
+    except Exception:
+        return entries
+
+    for item in root.findall(".//item"):
+        title = (item.findtext("title") or "").strip()
+        summary = (item.findtext("description") or "").strip()
+        link = (item.findtext("link") or "").strip()
+        pub_raw = (
+            item.findtext("pubDate")
+            or item.findtext("published")
+            or item.findtext("updated")
+            or ""
+        ).strip()
+        pub = None
+        if pub_raw:
+            try:
+                pub = parsedate_to_datetime(pub_raw)
+                if pub.tzinfo is not None:
+                    pub = pub.astimezone().replace(tzinfo=None)
+            except Exception:
+                pub = None
+
+        entries.append(
+            {
+                "title": title,
+                "summary": summary,
+                "link": link,
+                "published_dt": pub,
+            }
+        )
+    return entries
+
+
 # ── Nguồn 1: RSS trực tiếp báo VN ─────────────────────────────────────────────
 def _is_gold_price_news(title: str, snippet: str = "") -> bool:
     """
@@ -138,9 +192,6 @@ def _is_gold_price_news(title: str, snippet: str = "") -> bool:
 
 def _fetch_rss(target_date: date, max_total: int = MAX_NEWS) -> list[dict]:
     """Đọc RSS từ các báo VN, lọc tin liên quan đến vàng trong ±2 ngày."""
-    if not _HAS_FEEDPARSER:
-        return []
-
     date_from = datetime.combine(target_date - timedelta(days=2), datetime.min.time())
     date_to   = datetime.combine(target_date + timedelta(days=1), datetime.min.time())
     results: list[dict] = []
@@ -153,36 +204,54 @@ def _fetch_rss(target_date: date, max_total: int = MAX_NEWS) -> list[dict]:
             resp = requests.get(feed_url, headers=_RSS_HEADERS, timeout=REQUEST_TIMEOUT)
             if resp.status_code != 200:
                 continue
-            feed = feedparser.parse(resp.content)
-            for entry in feed.entries:
+            if _HAS_FEEDPARSER:
+                parsed_entries = []
+                feed = feedparser.parse(resp.content)
+                for entry in feed.entries:
+                    pub = None
+                    for attr in ("published_parsed", "updated_parsed"):
+                        raw = entry.get(attr)
+                        if raw:
+                            try:
+                                pub = datetime(*raw[:6])
+                            except Exception:
+                                pass
+                            break
+
+                    parsed_entries.append(
+                        {
+                            "title": entry.get("title", ""),
+                            "summary": entry.get("summary", "")
+                            or entry.get("description", ""),
+                            "link": entry.get("link", ""),
+                            "published_dt": pub,
+                        }
+                    )
+            else:
+                parsed_entries = _parse_rss_entries(resp.content)
+
+            for entry in parsed_entries:
                 if len(results) >= max_total:
                     break
 
-                title   = entry.get("title", "")
-                summary = entry.get("summary", "") or entry.get("description", "")
-                link    = entry.get("link", "")
-                # Parse published date
-                pub = None
-                for attr in ("published_parsed", "updated_parsed"):
-                    raw = entry.get(attr)
-                    if raw:
-                        try:
-                            pub = datetime(*raw[:6])
-                        except Exception:
-                            pass
-                        break
+                title = entry.get("title", "")
+                summary = entry.get("summary", "")
+                link = entry.get("link", "")
+                pub = entry.get("published_dt")
 
                 # Lọc theo thời gian
                 if pub and not (date_from <= pub <= date_to):
                     continue
 
                 # Lọc chặt: chỉ lấy bài thực sự về GIÁ VÀNG
-                if not _is_gold_price_news(title, summary):
+                title_clean = _clean_text(title)
+                summary_clean = _clean_text(summary)
+                if not _is_gold_price_news(title_clean, summary_clean):
                     continue
 
                 results.append({
-                    "title":     title,
-                    "snippet":   summary[:300].strip(),
+                    "title":     title_clean,
+                    "snippet":   summary_clean[:300],
                     "url":       link,
                     "published": pub.strftime("%Y-%m-%d %H:%M") if pub else "",
                     "source":    source_name,
@@ -432,7 +501,20 @@ def get_news_and_llm_supplement_for_date(
         }
     """
     newsapi_key = os.getenv("NEWSAPI_KEY")
-    news        = _collect_news(prediction_date, newsapi_key, gnews_key)
+    news = _collect_news(prediction_date, newsapi_key, gnews_key)
+
+    # Fallback: nếu ngày được click không có tin, lùi tối đa 3 ngày để tăng khả năng
+    # hiển thị các đầu mục tin tức gần nhất trong modal.
+    if not news:
+        for back_days in (1, 2, 3):
+            news = _collect_news(
+                prediction_date - timedelta(days=back_days),
+                newsapi_key,
+                gnews_key,
+            )
+            if news:
+                break
+
     llm_result  = _call_llm(api_key, _make_prompt(prediction_date, price_vnd, ml_signal, news))
     return {"news": news, "llm_supplement": llm_result}
 

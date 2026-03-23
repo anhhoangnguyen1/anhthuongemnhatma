@@ -10,6 +10,7 @@ matplotlib>=3.8
 Flask>=2.3
 requests>=2.31
 python-dotenv>=1.0
+feedparser>=6.0
 
 # Feature engineering / scraping
 ta>=0.11
