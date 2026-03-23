@@ -470,23 +470,23 @@ def api_gold_codes():
 
 @app.route("/api/macro")
 def api_macro():
-    """Trả dữ liệu lãi suất FED, DXY, tỷ giá USD/VND, giá vàng thế giới để vẽ biểu đồ macro."""
-    macro_candidates = [
-        ROOT / "MACRO_FEATURES_1_YEAR.csv",
-        ROOT / "input_1year" / "MACRO_FEATURES_1_YEAR.csv",
-    ]
-    macro_path = next((p for p in macro_candidates if p.exists()), None)
-    if macro_path is None:
-        return jsonify({"error": "Macro file not found. Run fetch_macro_1_year.py first."}), 404
+    """Trả dữ liệu macro realtime từ master_dss_dataset.csv để vẽ biểu đồ macro."""
+    master_path = _get_master_path()
+    if not master_path.exists():
+        return jsonify({"error": "Master file not found."}), 404
 
     try:
-        df = pd.read_csv(macro_path)
-        date_col = next((c for c in df.columns if c.lower() in ("date", "ngay", "timestamp")), None)
+        df = pd.read_csv(master_path)
+
+        date_col = next(
+            (c for c in ("timestamp", "date", "datetime", "ngay") if c in df.columns),
+            None,
+        )
         if date_col is None:
-            return jsonify({"error": "No date column in macro file."}), 500
+            return jsonify({"error": "No date column in master file."}), 500
 
         df["_date"] = pd.to_datetime(df[date_col], errors="coerce").dt.normalize()
-        df = df.dropna(subset=["_date"]).sort_values("_date").reset_index(drop=True)
+        df = df.dropna(subset=["_date"]).copy()
 
         def col_or_none(candidates):
             for c in candidates:
@@ -494,25 +494,57 @@ def api_macro():
                     return c
             return None
 
-        fed_col   = col_or_none(["fed_rate", "Fed_Rate"])
-        dxy_col   = col_or_none(["dxy_index", "DXY_Index"])
-        vn_col    = col_or_none(["interest_rate_market", "interest_rate_state"])
-        usd_col   = col_or_none(["usd_vnd_rate", "USD_VND_Rate"])
-        world_col = col_or_none(["World_Price_USD_Ounce", "world_price_usd_ounce"])
+        fed_col = col_or_none(["fed_rate", "Fed_Rate"])
+        dxy_col = col_or_none(["dxy_index", "DXY_Index"])
+        vn_col = col_or_none(["interest_rate_market", "interest_rate_state"])
+        usd_col = col_or_none(["usd_vnd_rate", "USD_VND_Rate"])
+        world_col = col_or_none([
+            "World_Price_USD_Ounce",
+            "world_price_usd_ounce",
+            "world_gold",
+        ])
 
-        def to_list(col):
-            if col and col in df.columns:
-                return pd.to_numeric(df[col], errors="coerce").round(4).tolist()
-            return []
+        agg_map = {}
+        if fed_col:
+            agg_map[fed_col] = "median"
+        if dxy_col:
+            agg_map[dxy_col] = "median"
+        if vn_col:
+            agg_map[vn_col] = "median"
+        if usd_col:
+            agg_map[usd_col] = "median"
+        if world_col:
+            agg_map[world_col] = "median"
 
-        return jsonify({
-            "dates":       df["_date"].dt.strftime("%Y-%m-%d").tolist(),
-            "fed_rate":    to_list(fed_col),
-            "dxy_index":   to_list(dxy_col),
-            "vn_rate":     to_list(vn_col),
-            "usd_vnd":     to_list(usd_col),
-            "world_gold":  to_list(world_col),
-        })
+        if not agg_map:
+            return jsonify({"error": "No macro columns found in master file."}), 500
+
+        for c in agg_map:
+            df[c] = pd.to_numeric(df[c], errors="coerce")
+
+        daily = (
+            df.groupby("_date", as_index=False)
+            .agg(agg_map)
+            .sort_values("_date")
+            .reset_index(drop=True)
+        )
+
+        def to_json_list(col):
+            if not col or col not in daily.columns:
+                return []
+            s = daily[col].round(4)
+            return s.where(s.notna(), None).tolist()
+
+        return jsonify(
+            {
+                "dates": daily["_date"].dt.strftime("%Y-%m-%d").tolist(),
+                "fed_rate": to_json_list(fed_col),
+                "dxy_index": to_json_list(dxy_col),
+                "vn_rate": to_json_list(vn_col),
+                "usd_vnd": to_json_list(usd_col),
+                "world_gold": to_json_list(world_col),
+            }
+        )
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

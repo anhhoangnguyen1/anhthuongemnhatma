@@ -1,2079 +1,2859 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DSS Vàng – Trading Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #f2f6fb;
+        --bg-grad-a: #f9fbff;
+        --bg-grad-b: #ecf3ff;
+        --card: #ffffff;
+        --card-soft: #f7faff;
+        --card-border: #d8e4f2;
+        --text: #142133;
+        --text-muted: #5e738b;
+        --text-soft: #30445c;
+        --accent: #2f6ff2;
+        --accent-weak: rgba(47, 111, 242, 0.12);
+        --shadow: 0 10px 28px rgba(15, 41, 74, 0.08);
+        --chart-grid: rgba(96, 127, 163, 0.2);
+        --overlay: rgba(7, 18, 34, 0.55);
+        --buy: #22c55e;
+        --not_buy: #60a5fa;
+        --hold: #eab308;
+        --sell: #ef4444;
+      }
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DSS Vàng – Trading Dashboard</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #1A1D2D;
-      --card: #2C3140;
-      --card-border: rgba(71, 85, 105, 0.4);
-      --text: #f1f5f9;
-      --text-muted: #94a3b8;
-      --accent: #6366f1;
-      --buy: #22c55e;
-      --not_buy: #60a5fa;
-      --hold: #eab308;
-      --sell: #ef4444;
-    }
+      html[data-theme="dark"] {
+        --bg: #0f1726;
+        --bg-grad-a: #141d2e;
+        --bg-grad-b: #0f1726;
+        --card: #1a2436;
+        --card-soft: #202c40;
+        --card-border: rgba(99, 122, 152, 0.35);
+        --text: #e8eef7;
+        --text-muted: #9ab0ca;
+        --text-soft: #cad8ea;
+        --accent: #6f8dff;
+        --accent-weak: rgba(111, 141, 255, 0.16);
+        --shadow: 0 14px 30px rgba(2, 8, 20, 0.35);
+        --chart-grid: rgba(255, 255, 255, 0.08);
+        --overlay: rgba(0, 0, 0, 0.66);
+      }
 
-    * {
-      box-sizing: border-box;
-    }
+      * {
+        box-sizing: border-box;
+      }
 
-    body {
-      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-      margin: 0;
-      padding: 1.25rem 1.5rem;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-    }
+      body {
+        font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+        margin: 0;
+        padding: 1.25rem 1.5rem;
+        background:
+          radial-gradient(
+            1100px 600px at 80% -10%,
+            var(--bg-grad-b),
+            transparent 60%
+          ),
+          linear-gradient(180deg, var(--bg-grad-a), var(--bg));
+        color: var(--text);
+        min-height: 100vh;
+      }
 
-    /* ── Header ── */
-    .dashboard-header {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-      padding-bottom: 1rem;
-      border-bottom: 1px solid var(--card-border);
-    }
+      /* ── Header ── */
+      .dashboard-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--card-border);
+      }
 
-    .dashboard-header h1 {
-      margin: 0;
-      font-size: 1.75rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-    }
+      .dashboard-header h1 {
+        margin: 0;
+        font-size: 1.75rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
 
-    .dashboard-subtitle {
-      margin: 0.25rem 0 0;
-      font-size: 0.9rem;
-      color: var(--text-muted);
-    }
+      .dashboard-subtitle {
+        margin: 0.25rem 0 0;
+        font-size: 0.9rem;
+        color: var(--text-muted);
+      }
 
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      flex-wrap: wrap;
-    }
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
 
-    .pill {
-      padding: 0.5rem 1rem;
-      border-radius: 999px;
-      font-size: 0.85rem;
-      font-weight: 500;
-      border: 1px solid var(--card-border);
-      background: var(--card);
-      color: var(--text);
-    }
+      .pill {
+        padding: 0.5rem 1rem;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        border: 1px solid var(--card-border);
+        background: var(--card);
+        color: var(--text);
+      }
 
-    .pill.mode {
-      background: rgba(34, 197, 94, 0.2);
-      color: #86efac;
-      border-color: rgba(34, 197, 94, 0.4);
-    }
+      .pill.mode {
+        background: rgba(34, 197, 94, 0.2);
+        color: #166534;
+        border-color: rgba(34, 197, 94, 0.4);
+      }
 
-    /* ── Cards ── */
-    .card {
-      background: var(--card);
-      border-radius: 14px;
-      padding: 1.25rem 1.5rem;
-      margin-bottom: 1.25rem;
-      border: 1px solid var(--card-border);
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.15);
-    }
+      html[data-theme="dark"] .pill.mode {
+        color: #86efac;
+      }
 
-    .card-title {
-      margin: 0 0 0.5rem;
-      font-size: 1rem;
-      font-weight: 600;
-    }
+      .theme-toggle {
+        padding: 0.5rem 0.9rem;
+        border-radius: 999px;
+        border: 1px solid var(--card-border);
+        background: var(--card);
+        color: var(--text);
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
 
-    .card-subtitle {
-      margin: 0 0 0.75rem;
-      font-size: 0.8rem;
-      color: var(--text-muted);
-    }
+      .theme-toggle:hover {
+        border-color: var(--accent);
+        background: var(--accent-weak);
+      }
 
-    /* ── Metrics grid ── */
-    .metrics-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
-      margin-bottom: 1.25rem;
-    }
+      /* ── Cards ── */
+      .card {
+        background: var(--card);
+        border-radius: 14px;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 1.25rem;
+        border: 1px solid var(--card-border);
+        box-shadow: var(--shadow);
+      }
 
-    .metric-card {
-      background: var(--card);
-      border-radius: 14px;
-      padding: 1.25rem;
-      border: 1px solid var(--card-border);
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.15);
-    }
+      .card-title {
+        margin: 0 0 0.5rem;
+        font-size: 1rem;
+        font-weight: 600;
+      }
 
-    .metric-card .label {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-muted);
-      margin-bottom: 0.5rem;
-    }
+      .card-subtitle {
+        margin: 0 0 0.75rem;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
 
-    .metric-card .value {
-      font-size: 1.5rem;
-      font-weight: 700;
-    }
+      /* ── Metrics grid ── */
+      .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+      }
 
-    .metric-card .value.green {
-      color: var(--buy);
-    }
+      .metric-card {
+        background: var(--card);
+        border-radius: 14px;
+        padding: 1.25rem;
+        border: 1px solid var(--card-border);
+        box-shadow: var(--shadow);
+      }
 
-    .metric-card .value.blue {
-      color: #3b82f6;
-    }
+      .metric-card .label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+        margin-bottom: 0.5rem;
+      }
 
-    .metric-card .value.amber {
-      color: var(--hold);
-    }
+      .metric-card .value {
+        font-size: 1.5rem;
+        font-weight: 700;
+      }
 
-    .metric-card .value.purple {
-      color: #a78bfa;
-    }
+      .metric-card .value.green {
+        color: var(--buy);
+      }
 
-    .metric-card .extra {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      margin-top: 0.35rem;
-    }
+      .metric-card .value.blue {
+        color: #3b82f6;
+      }
 
-    /* ── Signal card (full-width, replaces old pred metric) ── */
-    .signal-card {
-      background: var(--card);
-      border-radius: 14px;
-      padding: 1.25rem 1.5rem;
-      margin-bottom: 1.25rem;
-      border: 1px solid var(--card-border);
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1.5rem;
-      align-items: flex-start;
-    }
+      .metric-card .value.amber {
+        color: var(--hold);
+      }
 
-    .signal-main {
-      flex: 0 0 auto;
-    }
+      .metric-card .value.purple {
+        color: #a78bfa;
+      }
 
-    .signal-main .label {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-muted);
-      margin-bottom: 0.5rem;
-    }
+      .metric-card .extra {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-top: 0.35rem;
+      }
 
-    .signal-badge-wrap {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      flex-wrap: wrap;
-    }
+      /* ── Signal card (full-width, replaces old pred metric) ── */
+      .signal-card {
+        background: var(--card);
+        border-radius: 14px;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 1.25rem;
+        border: 1px solid var(--card-border);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        align-items: flex-start;
+      }
 
-    .signal-conf {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
+      .signal-main {
+        flex: 0 0 auto;
+      }
 
-    .conf-bar {
-      width: 80px;
-      height: 6px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 3px;
-      overflow: hidden;
-    }
+      .signal-main .label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+        margin-bottom: 0.5rem;
+      }
 
-    .conf-fill {
-      height: 100%;
-      border-radius: 3px;
-      transition: width .4s;
-    }
+      .signal-badge-wrap {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
 
-    .signal-reasoning {
-      flex: 1 1 280px;
-      background: rgba(99, 102, 241, 0.08);
-      border-left: 3px solid var(--accent);
-      border-radius: 0 8px 8px 0;
-      padding: 0.75rem 1rem;
-    }
+      .signal-conf {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
 
-    .signal-reasoning .reason-label {
-      font-size: 0.72rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: #a5b4fc;
-      margin-bottom: 0.4rem;
-    }
+      .conf-bar {
+        width: 80px;
+        height: 6px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 3px;
+        overflow: hidden;
+      }
 
-    .signal-reasoning p {
-      margin: 0;
-      font-size: 0.88rem;
-      color: #cbd5e1;
-      line-height: 1.6;
-    }
+      .conf-fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.4s;
+      }
 
-    .signal-track {
-      flex: 0 0 auto;
-      display: flex;
-      flex-direction: column;
-      gap: 0.4rem;
-    }
+      .signal-reasoning {
+        flex: 1 1 280px;
+        background: var(--accent-weak);
+        border-left: 3px solid var(--accent);
+        border-radius: 0 8px 8px 0;
+        padding: 0.75rem 1rem;
+      }
 
-    .signal-track .label {
-      font-size: 0.72rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-muted);
-    }
+      .signal-reasoning .reason-label {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--accent);
+        margin-bottom: 0.4rem;
+      }
 
-    .track-nums {
-      display: flex;
-      gap: 0.75rem;
-      align-items: baseline;
-    }
+      .signal-reasoning p {
+        margin: 0;
+        font-size: 0.88rem;
+        color: var(--text-soft);
+        line-height: 1.6;
+      }
 
-    .track-acc {
-      font-size: 1.4rem;
-      font-weight: 700;
-    }
+      .signal-track {
+        flex: 0 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
 
-    .track-detail {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-    }
+      .signal-track .label {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+      }
 
-    .signal-disclaimer {
-      flex: 1 1 100%;
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      padding-top: 0.75rem;
-      border-top: 1px solid var(--card-border);
-      line-height: 1.5;
-    }
+      .track-nums {
+        display: flex;
+        gap: 0.75rem;
+        align-items: baseline;
+      }
 
-    /* ── Prediction badges ── */
-    .prediction-badge {
-      font-size: 1.1rem;
-      font-weight: 700;
-      padding: 0.5rem 1rem;
-      border-radius: 10px;
-    }
+      .track-acc {
+        font-size: 1.4rem;
+        font-weight: 700;
+      }
 
-    .prediction-badge.buy {
-      background: rgba(34, 197, 94, 0.25);
-      color: #86efac;
-    }
+      .track-detail {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
 
-    .prediction-badge.not_buy {
-      background: rgba(96, 165, 250, 0.25);
-      color: #93c5fd;
-    }
+      .signal-disclaimer {
+        flex: 1 1 100%;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        padding-top: 0.75rem;
+        border-top: 1px solid var(--card-border);
+        line-height: 1.5;
+      }
 
-    .prediction-badge.hold {
-      background: rgba(234, 179, 8, 0.25);
-      color: #fde047;
-    }
+      /* ── Prediction badges ── */
+      .prediction-badge {
+        font-size: 1.1rem;
+        font-weight: 700;
+        padding: 0.5rem 1rem;
+        border-radius: 10px;
+      }
 
-    .prediction-badge.sell {
-      background: rgba(239, 68, 68, 0.25);
-      color: #fca5a5;
-    }
+      .prediction-badge.buy {
+        background: rgba(34, 197, 94, 0.25);
+        color: #86efac;
+      }
 
-    .prediction-badge.na,
-    .prediction-badge.loading {
-      background: var(--card);
-      color: var(--text-muted);
-    }
+      .prediction-badge.not_buy {
+        background: rgba(96, 165, 250, 0.25);
+        color: #93c5fd;
+      }
 
-    /* ── Charts ── */
-    .chart-wrap {
-      position: relative;
-      height: 360px;
-    }
+      .prediction-badge.hold {
+        background: rgba(234, 179, 8, 0.25);
+        color: #fde047;
+      }
 
-    .chart-wrap canvas {
-      cursor: pointer;
-    }
+      .prediction-badge.sell {
+        background: rgba(239, 68, 68, 0.25);
+        color: #fca5a5;
+      }
 
-    .charts-row {
-      display: grid;
-      grid-template-columns: 1fr 300px;
-      gap: 1.25rem;
-      margin-bottom: 1.25rem;
-    }
+      .prediction-badge.na,
+      .prediction-badge.loading {
+        background: var(--card);
+        color: var(--text-muted);
+      }
 
-    @media (max-width: 900px) {
+      /* ── Charts ── */
+      .chart-wrap {
+        position: relative;
+        height: 360px;
+      }
+
+      .chart-wrap canvas {
+        cursor: pointer;
+      }
+
       .charts-row {
-        grid-template-columns: 1fr;
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 1.25rem;
+        margin-bottom: 1.25rem;
       }
-    }
 
-    /* ── Track record mini donut ── */
-    .donut-wrap {
-      position: relative;
-      height: 260px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+      .macro-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+        margin-top: 0.75rem;
+      }
 
-    /* ── Selector card ── */
-    .gold-code-select {
-      min-width: 220px;
-      padding: 0.5rem 0.75rem;
-      font-size: 0.95rem;
-      border-radius: 10px;
-      background: var(--bg);
-      color: var(--text);
-      border: 1px solid var(--card-border);
-      cursor: pointer;
-    }
+      .macro-mini {
+        background: var(--card-soft);
+        border: 1px solid var(--card-border);
+        border-radius: 12px;
+        padding: 0.9rem 1rem;
+        cursor: pointer;
+        transition:
+          transform 0.18s ease,
+          border-color 0.18s ease,
+          background 0.18s ease;
+      }
 
-    .gold-code-select:hover,
-    .gold-code-select:focus {
-      border-color: var(--accent);
-      outline: none;
-    }
+      .macro-mini:hover {
+        transform: translateY(-2px);
+        border-color: var(--accent);
+        background: var(--accent-weak);
+      }
 
-    input[type=checkbox] {
-      accent-color: var(--accent);
-      cursor: pointer;
-    }
+      .macro-mini:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
 
-    /* ── Collapsible technical panel ── */
-    .collapsible-toggle {
-      background: none;
-      border: 1px solid var(--card-border);
-      border-radius: 8px;
-      color: var(--text-muted);
-      font-size: 0.85rem;
-      padding: 0.5rem 1rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      transition: all .2s;
-      margin-bottom: 1.25rem;
-      width: 100%;
-    }
+      .macro-mini .card-title {
+        margin-bottom: 0.35rem;
+      }
 
-    .collapsible-toggle:hover {
-      background: rgba(255, 255, 255, 0.05);
-      color: var(--text);
-    }
+      .macro-mini .macro-help {
+        margin: 0 0 0.5rem;
+        font-size: 0.74rem;
+        color: var(--text-muted);
+      }
 
-    .collapsible-toggle .arrow {
-      transition: transform .25s;
-    }
+      .macro-mini .chart-wrap {
+        height: 220px;
+      }
 
-    .collapsible-toggle.open .arrow {
-      transform: rotate(180deg);
-    }
+      @media (max-width: 900px) {
+        .charts-row {
+          grid-template-columns: 1fr;
+        }
 
-    .collapsible-content {
-      display: none;
-    }
+        .macro-grid {
+          grid-template-columns: 1fr;
+        }
+      }
 
-    .collapsible-content.open {
-      display: block;
-    }
+      /* ── Track record mini donut ── */
+      .donut-wrap {
+        position: relative;
+        height: 260px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
 
-    /* ── Errors & loading ── */
-    .error-msg {
-      background: rgba(239, 68, 68, 0.15);
-      color: #fca5a5;
-      padding: 1rem;
-      border-radius: 10px;
-      margin: 1rem 0;
-      border: 1px solid rgba(239, 68, 68, 0.3);
-    }
+      /* ── Selector card ── */
+      .gold-code-select {
+        min-width: 220px;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.95rem;
+        border-radius: 10px;
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--card-border);
+        cursor: pointer;
+      }
 
-    .loading {
-      color: var(--text-muted);
-    }
+      .gold-code-select:hover,
+      .gold-code-select:focus {
+        border-color: var(--accent);
+        outline: none;
+      }
 
-    /* ── Modal ── */
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.65);
-      z-index: 100;
-      align-items: center;
-      justify-content: center;
-      padding: 1rem;
-    }
+      input[type="checkbox"] {
+        accent-color: var(--accent);
+        cursor: pointer;
+      }
 
-    .modal-overlay.show {
-      display: flex;
-    }
+      /* ── Collapsible technical panel ── */
+      .collapsible-toggle {
+        background: none;
+        border: 1px solid var(--card-border);
+        border-radius: 8px;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s;
+        margin-bottom: 1.25rem;
+        width: 100%;
+      }
 
-    .modal-box {
-      background: var(--card);
-      border: 1px solid var(--card-border);
-      border-radius: 14px;
-      max-width: 560px;
-      width: 100%;
-      max-height: 85vh;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
-    }
+      .collapsible-toggle:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text);
+      }
 
-    .modal-header {
-      padding: 1rem 1.25rem;
-      border-bottom: 1px solid var(--card-border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+      .collapsible-toggle .arrow {
+        transition: transform 0.25s;
+      }
 
-    .modal-header h3 {
-      margin: 0;
-      font-size: 1.1rem;
-    }
+      .collapsible-toggle.open .arrow {
+        transform: rotate(180deg);
+      }
 
-    .modal-close {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      font-size: 1.5rem;
-      cursor: pointer;
-      line-height: 1;
-      padding: 0 0.25rem;
-    }
+      .collapsible-content {
+        display: none;
+      }
 
-    .modal-close:hover {
-      color: var(--text);
-    }
+      .collapsible-content.open {
+        display: block;
+      }
 
-    .modal-body {
-      padding: 1rem 1.25rem;
-      overflow-y: auto;
-      flex: 1;
-    }
+      /* ── Errors & loading ── */
+      .error-msg {
+        background: rgba(239, 68, 68, 0.15);
+        color: #fca5a5;
+        padding: 1rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+      }
 
-    .modal-body .date-meta {
-      color: var(--text-muted);
-      margin-bottom: 0.75rem;
-      font-size: 0.9rem;
-    }
+      .loading {
+        color: var(--text-muted);
+      }
 
-    .modal-body .news-item {
-      padding: 0.6rem 0;
-      border-bottom: 1px solid var(--card-border);
-      font-size: 0.9rem;
-    }
+      /* ── Modal ── */
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: var(--overlay);
+        z-index: 100;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+      }
 
-    .modal-body .news-item:last-child {
-      border-bottom: none;
-    }
+      .modal-overlay.show {
+        display: flex;
+      }
 
-    .modal-body .news-item strong {
-      color: var(--text);
-    }
+      .modal-box {
+        background: var(--card);
+        border: 1px solid var(--card-border);
+        border-radius: 14px;
+        max-width: 560px;
+        width: 100%;
+        max-height: 85vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+      }
 
-    .supplement-box {
-      margin-top: 1rem;
-      padding: 1rem;
-      background: rgba(99, 102, 241, 0.12);
-      border-radius: 10px;
-      border-left: 4px solid var(--accent);
-    }
+      .modal-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--card-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
 
-    .supplement-box h4 {
-      margin: 0 0 0.5rem;
-      font-size: 1rem;
-      color: #a5b4fc;
-    }
+      .modal-header h3 {
+        margin: 0;
+        font-size: 1.1rem;
+      }
 
-    .supplement-box .risk-tag {
-      display: inline-block;
-      background: rgba(239, 68, 68, 0.15);
-      color: #fca5a5;
-      border-radius: 6px;
-      padding: 0.2rem 0.6rem;
-      font-size: 0.78rem;
-      margin-top: 0.25rem;
-    }
+      .modal-close {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        font-size: 1.5rem;
+        cursor: pointer;
+        line-height: 1;
+        padding: 0 0.25rem;
+      }
 
-    .llm-inner {
-      margin-top: 0.75rem;
-      padding: 1rem;
-      background: rgba(99, 102, 241, 0.08);
-      border-radius: 10px;
-      border-left: 4px solid var(--accent);
-    }
+      .modal-close:hover {
+        color: var(--text);
+      }
 
-    /* ── Advisory Panel ── */
-    .advisory-panel {
-      background: var(--card);
-      border-radius: 16px;
-      padding: 1.5rem;
-      margin-bottom: 1.25rem;
-      border: 1px solid var(--card-border);
-      box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.25);
-      position: relative;
-      overflow: hidden;
-    }
+      .modal-body {
+        padding: 1rem 1.25rem;
+        overflow-y: auto;
+        flex: 1;
+      }
 
-    .advisory-panel::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 4px;
-      border-radius: 16px 16px 0 0;
-    }
+      .modal-body .date-meta {
+        color: var(--text-muted);
+        margin-bottom: 0.75rem;
+        font-size: 0.9rem;
+      }
 
-    .advisory-panel.strong_buy::before {
-      background: linear-gradient(90deg, #16a34a, #22c55e);
-    }
+      .modal-body .news-item {
+        padding: 0.6rem 0;
+        border-bottom: 1px solid var(--card-border);
+        font-size: 0.9rem;
+      }
 
-    .advisory-panel.buy::before {
-      background: linear-gradient(90deg, #22c55e, #4ade80);
-    }
+      .modal-body .news-item:last-child {
+        border-bottom: none;
+      }
 
-    .advisory-panel.watch::before {
-      background: linear-gradient(90deg, #eab308, #facc15);
-    }
+      .modal-body .news-item strong {
+        color: var(--text);
+      }
 
-    .advisory-panel.avoid::before {
-      background: linear-gradient(90deg, #ef4444, #f87171);
-    }
+      .supplement-box {
+        margin-top: 1rem;
+        padding: 1rem;
+        background: rgba(99, 102, 241, 0.12);
+        border-radius: 10px;
+        border-left: 4px solid var(--accent);
+      }
 
-    .advisory-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-      margin-bottom: 1rem;
-    }
+      .supplement-box h4 {
+        margin: 0 0 0.5rem;
+        font-size: 1rem;
+        color: #a5b4fc;
+      }
 
-    .advisory-header h2 {
-      margin: 0;
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
+      .supplement-box .risk-tag {
+        display: inline-block;
+        background: rgba(239, 68, 68, 0.15);
+        color: #fca5a5;
+        border-radius: 6px;
+        padding: 0.2rem 0.6rem;
+        font-size: 0.78rem;
+        margin-top: 0.25rem;
+      }
 
-    .advisory-timestamp {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
+      .llm-inner {
+        margin-top: 0.75rem;
+        padding: 1rem;
+        background: rgba(99, 102, 241, 0.08);
+        border-radius: 10px;
+        border-left: 4px solid var(--accent);
+      }
 
-    .advisory-badge {
-      display: inline-block;
-      font-size: 1.35rem;
-      font-weight: 700;
-      padding: 0.6rem 1.5rem;
-      border-radius: 12px;
-      margin-bottom: 0.75rem;
-      letter-spacing: 0.02em;
-    }
+      /* ── Advisory Panel ── */
+      .advisory-panel {
+        background: var(--card);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 1.25rem;
+        border: 1px solid var(--card-border);
+        box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.25);
+        position: relative;
+        overflow: hidden;
+      }
 
-    .advisory-badge.strong_buy {
-      background: rgba(22, 163, 74, 0.25);
-      color: #86efac;
-    }
+      .advisory-panel::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        border-radius: 16px 16px 0 0;
+      }
 
-    .advisory-badge.buy {
-      background: rgba(34, 197, 94, 0.25);
-      color: #86efac;
-    }
+      .advisory-panel.strong_buy::before {
+        background: linear-gradient(90deg, #16a34a, #22c55e);
+      }
 
-    .advisory-badge.watch {
-      background: rgba(234, 179, 8, 0.25);
-      color: #fde047;
-    }
+      .advisory-panel.buy::before {
+        background: linear-gradient(90deg, #22c55e, #4ade80);
+      }
 
-    .advisory-badge.avoid {
-      background: rgba(239, 68, 68, 0.25);
-      color: #fca5a5;
-    }
+      .advisory-panel.watch::before {
+        background: linear-gradient(90deg, #eab308, #facc15);
+      }
 
-    .advisory-sublabel {
-      font-size: 0.9rem;
-      color: var(--text-muted);
-      margin-bottom: 1rem;
-    }
+      .advisory-panel.avoid::before {
+        background: linear-gradient(90deg, #ef4444, #f87171);
+      }
 
-    .advisory-body {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.25rem;
-    }
+      .advisory-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
 
-    @media (max-width: 700px) {
+      .advisory-header h2 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .advisory-timestamp {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+      }
+
+      .advisory-badge {
+        display: inline-block;
+        font-size: 1.35rem;
+        font-weight: 700;
+        padding: 0.6rem 1.5rem;
+        border-radius: 12px;
+        margin-bottom: 0.75rem;
+        letter-spacing: 0.02em;
+      }
+
+      .advisory-badge.strong_buy {
+        background: rgba(22, 163, 74, 0.25);
+        color: #86efac;
+      }
+
+      .advisory-badge.buy {
+        background: rgba(34, 197, 94, 0.25);
+        color: #86efac;
+      }
+
+      .advisory-badge.watch {
+        background: rgba(234, 179, 8, 0.25);
+        color: #fde047;
+      }
+
+      .advisory-badge.avoid {
+        background: rgba(239, 68, 68, 0.25);
+        color: #fca5a5;
+      }
+
+      .advisory-sublabel {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        margin-bottom: 1rem;
+      }
+
       .advisory-body {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .advisory-reasons {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-
-    .advisory-reasons li {
-      padding: 0.4rem 0;
-      font-size: 0.88rem;
-      color: #cbd5e1;
-      line-height: 1.5;
-      display: flex;
-      align-items: flex-start;
-      gap: 0.5rem;
-    }
-
-    .advisory-reasons li::before {
-      content: '•';
-      color: var(--accent);
-      font-weight: 700;
-      flex-shrink: 0;
-      margin-top: 1px;
-    }
-
-    .advisory-right {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    .advisory-outlook-box {
-      background: rgba(99, 102, 241, 0.08);
-      border-radius: 10px;
-      padding: 0.75rem 1rem;
-      border-left: 3px solid var(--accent);
-    }
-
-    .advisory-outlook-box .outlook-label {
-      font-size: 0.72rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: #a5b4fc;
-      margin-bottom: 0.35rem;
-    }
-
-    .advisory-outlook-box .outlook-value {
-      font-size: 1rem;
-      font-weight: 600;
-    }
-
-    .advisory-conf-bar {
-      height: 8px;
-      width: 100%;
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 4px;
-      overflow: hidden;
-    }
-
-    .advisory-conf-fill {
-      height: 100%;
-      border-radius: 4px;
-      transition: width 0.6s ease;
-    }
-
-    .advisory-disclaimer {
-      font-size: 0.72rem;
-      color: var(--text-muted);
-      padding-top: 0.75rem;
-      border-top: 1px solid var(--card-border);
-      margin-top: 1rem;
-      line-height: 1.5;
-    }
-
-    /* ── Skeleton shimmer ── */
-    @keyframes shimmer {
-
-      0%,
-      100% {
-        opacity: 0.4;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.25rem;
       }
 
-      50% {
-        opacity: 0.8;
+      @media (max-width: 700px) {
+        .advisory-body {
+          grid-template-columns: 1fr;
+        }
       }
-    }
 
-    .skeleton-rect {
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 8px;
-      animation: shimmer 1s ease-in-out infinite;
-    }
+      .advisory-reasons {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
 
-    .skeleton-line {
-      background: rgba(255, 255, 255, 0.06);
-      border-radius: 6px;
-      animation: shimmer 1s ease-in-out infinite;
-    }
-  </style>
-</head>
+      .advisory-reasons li {
+        padding: 0.4rem 0;
+        font-size: 0.88rem;
+        color: var(--text-soft);
+        line-height: 1.5;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+      }
 
-<body>
-  <!-- ── Header ── -->
-  <header class="dashboard-header">
-    <div>
-      <h1>DSS Vàng – Trading Dashboard</h1>
-      <p class="dashboard-subtitle">Dự đoán tín hiệu vàng với mô hình XGBoost &amp; đánh giá tin tức (LLM)</p>
-    </div>
-    <div class="header-actions">
-      <span class="pill mode" id="mode-pill">BUY / NOT_BUY</span>
-      <span class="pill" id="data-pill">Dữ liệu realtime</span>
-    </div>
-  </header>
+      .advisory-reasons li::before {
+        content: "•";
+        color: var(--accent);
+        font-weight: 700;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
 
-  <!-- ── Selector ── -->
-  <div class="card" style="padding:1rem 1.5rem;margin-bottom:1.25rem;">
-    <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
-      <span style="font-size:0.9rem;color:var(--text-muted);font-weight:500;">Chọn loại vàng</span>
-      <select id="gold-code" class="gold-code-select" title="Chọn loại vàng">
-        <option value="">Trung bình tất cả loại vàng</option>
-      </select>
-    </div>
-  </div>
+      .advisory-right {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
 
-  <!-- ── Advisory Panel: Lời khuyên đầu tư ── -->
-  <div class="advisory-panel" id="advisory-panel">
-    <div class="advisory-header">
-      <h2>💡 Lời khuyên đầu tư</h2>
-      <span class="advisory-timestamp" id="adv-timestamp">Đang tải...</span>
+      .advisory-outlook-box {
+        background: var(--accent-weak);
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        border-left: 3px solid var(--accent);
+      }
+
+      .advisory-outlook-box .outlook-label {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--accent);
+        margin-bottom: 0.35rem;
+      }
+
+      .advisory-outlook-box .outlook-value {
+        font-size: 1rem;
+        font-weight: 600;
+      }
+
+      .advisory-conf-bar {
+        height: 8px;
+        width: 100%;
+        background: var(--card-border);
+        border-radius: 4px;
+        overflow: hidden;
+      }
+
+      .advisory-conf-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.6s ease;
+      }
+
+      .advisory-disclaimer {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        padding-top: 0.75rem;
+        border-top: 1px solid var(--card-border);
+        margin-top: 1rem;
+        line-height: 1.5;
+      }
+
+      /* ── Skeleton shimmer ── */
+      @keyframes shimmer {
+        0%,
+        100% {
+          opacity: 0.4;
+        }
+
+        50% {
+          opacity: 0.8;
+        }
+      }
+
+      .skeleton-rect {
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 8px;
+        animation: shimmer 1s ease-in-out infinite;
+      }
+
+      .skeleton-line {
+        background: rgba(255, 255, 255, 0.06);
+        border-radius: 6px;
+        animation: shimmer 1s ease-in-out infinite;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- ── Header ── -->
+    <header class="dashboard-header">
+      <div>
+        <h1>DSS Vàng – Trading Dashboard</h1>
+        <p class="dashboard-subtitle">
+          Dự đoán tín hiệu vàng với mô hình XGBoost &amp; đánh giá tin tức (LLM)
+        </p>
+      </div>
+      <div class="header-actions">
+        <span class="pill mode" id="mode-pill">BUY / NOT_BUY</span>
+        <span class="pill" id="data-pill">Dữ liệu realtime</span>
+        <button type="button" class="theme-toggle" id="theme-toggle-btn">
+          Sáng
+        </button>
+      </div>
+    </header>
+
+    <!-- ── Selector ── -->
+    <div class="card" style="padding: 1rem 1.5rem; margin-bottom: 1.25rem">
+      <div
+        style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap"
+      >
+        <span
+          style="font-size: 0.9rem; color: var(--text-muted); font-weight: 500"
+          >Chọn loại vàng</span
+        >
+        <select id="gold-code" class="gold-code-select" title="Chọn loại vàng">
+          <option value="">Trung bình tất cả loại vàng</option>
+        </select>
+      </div>
     </div>
-    <!-- Skeleton loading -->
-    <div id="adv-skeleton">
-      <div class="skeleton-rect" style="height:48px;width:220px;margin-bottom:12px;"></div>
-      <div class="skeleton-line" style="height:12px;width:80%;margin-bottom:8px;"></div>
-      <div class="skeleton-line" style="height:12px;width:65%;margin-bottom:8px;"></div>
-      <div class="skeleton-line" style="height:12px;width:70%;margin-bottom:12px;"></div>
-      <div class="skeleton-rect" style="height:8px;width:100%;"></div>
-    </div>
-    <!-- Real content (hidden until loaded) -->
-    <div id="adv-content" style="display:none;">
-      <div id="adv-badge" class="advisory-badge">--</div>
-      <div class="advisory-sublabel" id="adv-sublabel"></div>
-      <div class="advisory-body">
-        <div>
-          <ul class="advisory-reasons" id="adv-reasons"></ul>
-        </div>
-        <div class="advisory-right">
-          <div class="advisory-outlook-box">
-            <div class="outlook-label">Xu hướng giá 7 ngày</div>
-            <div class="outlook-value" id="adv-outlook">--</div>
-          </div>
+
+    <!-- ── Advisory Panel: Lời khuyên đầu tư ── -->
+    <div class="advisory-panel" id="advisory-panel">
+      <div class="advisory-header">
+        <h2>💡 Lời khuyên đầu tư</h2>
+        <span class="advisory-timestamp" id="adv-timestamp">Đang tải...</span>
+      </div>
+      <!-- Skeleton loading -->
+      <div id="adv-skeleton">
+        <div
+          class="skeleton-rect"
+          style="height: 48px; width: 220px; margin-bottom: 12px"
+        ></div>
+        <div
+          class="skeleton-line"
+          style="height: 12px; width: 80%; margin-bottom: 8px"
+        ></div>
+        <div
+          class="skeleton-line"
+          style="height: 12px; width: 65%; margin-bottom: 8px"
+        ></div>
+        <div
+          class="skeleton-line"
+          style="height: 12px; width: 70%; margin-bottom: 12px"
+        ></div>
+        <div class="skeleton-rect" style="height: 8px; width: 100%"></div>
+      </div>
+      <!-- Real content (hidden until loaded) -->
+      <div id="adv-content" style="display: none">
+        <div id="adv-badge" class="advisory-badge">--</div>
+        <div class="advisory-sublabel" id="adv-sublabel"></div>
+        <div class="advisory-body">
           <div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-              <span style="font-size:0.75rem;color:var(--text-muted);">Độ tin cậy tổng hợp</span>
-              <span style="font-size:0.75rem;font-weight:600;" id="adv-conf-pct">--%</span>
-            </div>
-            <div class="advisory-conf-bar">
-              <div class="advisory-conf-fill" id="adv-conf-fill" style="width:0%;"></div>
-            </div>
+            <ul class="advisory-reasons" id="adv-reasons"></ul>
           </div>
-          <div id="adv-suggested" style="font-size:0.85rem;color:#cbd5e1;font-style:italic;"></div>
+          <div class="advisory-right">
+            <div class="advisory-outlook-box">
+              <div class="outlook-label">Xu hướng giá 7 ngày</div>
+              <div class="outlook-value" id="adv-outlook">--</div>
+            </div>
+            <div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  margin-bottom: 4px;
+                "
+              >
+                <span style="font-size: 0.75rem; color: var(--text-muted)"
+                  >Độ tin cậy tổng hợp</span
+                >
+                <span
+                  style="font-size: 0.75rem; font-weight: 600"
+                  id="adv-conf-pct"
+                  >--%</span
+                >
+              </div>
+              <div class="advisory-conf-bar">
+                <div
+                  class="advisory-conf-fill"
+                  id="adv-conf-fill"
+                  style="width: 0%"
+                ></div>
+              </div>
+            </div>
+            <div
+              id="adv-suggested"
+              style="font-size: 0.85rem; color: #cbd5e1; font-style: italic"
+            ></div>
+          </div>
+        </div>
+        <div class="advisory-disclaimer" id="adv-disclaimer"></div>
+      </div>
+    </div>
+
+    <!-- ── Metric cards (3 cards: giá, mã vàng, phân bố) ── -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="label">Giá mới nhất</div>
+        <div class="value blue" id="metric-price">--</div>
+        <div class="extra" id="metric-date">--</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Loại vàng</div>
+        <div class="value purple" id="metric-gold-code">Tất cả loại</div>
+        <div class="extra" id="gold-code-hint">Chọn loại để xem chi tiết</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Tín hiệu MUA (90 ngày)</div>
+        <div class="value amber" id="metric-distribution">--</div>
+        <div class="extra" id="metric-distribution-detail">
+          Nên mua / Chưa nên
         </div>
       </div>
-      <div class="advisory-disclaimer" id="adv-disclaimer"></div>
     </div>
-  </div>
 
-  <!-- ── Metric cards (3 cards: giá, mã vàng, phân bố) ── -->
-  <div class="metrics-grid">
-    <div class="metric-card">
-      <div class="label">Giá mới nhất</div>
-      <div class="value blue" id="metric-price">--</div>
-      <div class="extra" id="metric-date">--</div>
-    </div>
-    <div class="metric-card">
-      <div class="label">Loại vàng</div>
-      <div class="value purple" id="metric-gold-code">Tất cả loại</div>
-      <div class="extra" id="gold-code-hint">Chọn loại để xem chi tiết</div>
-    </div>
-    <div class="metric-card">
-      <div class="label">Tín hiệu MUA (90 ngày)</div>
-      <div class="value amber" id="metric-distribution">--</div>
-      <div class="extra" id="metric-distribution-detail">Nên mua / Chưa nên</div>
-    </div>
-  </div>
-
-  <!-- ── Signal card: tín hiệu + lý do + track record ── -->
-  <div class="signal-card" id="signal-card">
-    <!-- Cột 1: badge + confidence -->
-    <div class="signal-main">
-      <div class="label">Tín hiệu kỹ thuật mới nhất</div>
-      <div class="signal-badge-wrap">
-        <span id="latest-prediction" class="prediction-badge na">--</span>
-      </div>
-      <div class="signal-conf" style="margin-top:0.6rem;">
-        <div class="conf-bar">
-          <div class="conf-fill" id="conf-bar-fill" style="width:0%;background:#22c55e;"></div>
+    <!-- ── Signal card: tín hiệu + lý do + track record ── -->
+    <div class="signal-card" id="signal-card">
+      <!-- Cột 1: badge + confidence -->
+      <div class="signal-main">
+        <div class="label">Tín hiệu kỹ thuật mới nhất</div>
+        <div class="signal-badge-wrap">
+          <span id="latest-prediction" class="prediction-badge na">--</span>
         </div>
-        <span id="conf-label">--</span>
-        <span style="color:#64748b;">độ tin cậy</span>
+        <div class="signal-conf" style="margin-top: 0.6rem">
+          <div class="conf-bar">
+            <div
+              class="conf-fill"
+              id="conf-bar-fill"
+              style="width: 0%; background: #22c55e"
+            ></div>
+          </div>
+          <span id="conf-label">--</span>
+          <span style="color: #64748b">độ tin cậy</span>
+        </div>
+        <div
+          class="extra"
+          id="latest-pred-date"
+          style="margin-top: 0.4rem"
+        ></div>
       </div>
-      <div class="extra" id="latest-pred-date" style="margin-top:0.4rem;"></div>
+
+      <!-- Cột 2: lý do (LLM hoặc placeholder) -->
+      <div class="signal-reasoning" id="signal-reasoning-box">
+        <div class="reason-label">📌 Ghi chú</div>
+        <p
+          id="signal-reasoning-text"
+          style="color: #94a3b8; font-size: 0.88rem; line-height: 1.6"
+        >
+          Tín hiệu kỹ thuật chỉ là <b>1 yếu tố tham khảo</b>. Hãy xem
+          <b>"Lời khuyên đầu tư"</b> ở trên để có nhận định tổng hợp từ cả phân
+          tích kỹ thuật lẫn tin tức thị trường.
+        </p>
+      </div>
+
+      <!-- Cột 3: track record -->
+      <div class="signal-track">
+        <div class="label">Độ chính xác (30 ngày)</div>
+        <div class="track-nums">
+          <span class="track-acc" id="track-acc" style="color: #22c55e"
+            >--%</span
+          >
+        </div>
+        <div class="track-detail" id="track-detail">Đang tính...</div>
+      </div>
+
+      <!-- Disclaimer -->
+      <div class="signal-disclaimer">
+        ⚠️ Tín hiệu chỉ mang tính tham khảo, dựa trên mô hình phân tích 15 năm
+        dữ liệu giá vàng. Vui lòng kết hợp với lời khuyên đầu tư ở trên và ý
+        kiến chuyên gia trước khi quyết định.
+      </div>
     </div>
 
-    <!-- Cột 2: lý do (LLM hoặc placeholder) -->
-    <div class="signal-reasoning" id="signal-reasoning-box">
-      <div class="reason-label">📌 Ghi chú</div>
-      <p id="signal-reasoning-text" style="color:#94a3b8;font-size:0.88rem;line-height:1.6;">
-        Tín hiệu kỹ thuật chỉ là <b>1 yếu tố tham khảo</b>. Hãy xem <b>"Lời khuyên đầu tư"</b> ở trên để có nhận định
-        tổng hợp từ cả phân tích kỹ thuật lẫn tin tức thị trường.
+    <!-- ── Main chart + mini donut ── -->
+    <div class="charts-row">
+      <div class="card">
+        <h2 class="card-title" id="chart-title">
+          Giá vàng &amp; dự đoán (90 ngày gần nhất)
+        </h2>
+        <p class="card-subtitle">
+          Click vào điểm trên biểu đồ để xem tin tức &amp; phân tích bổ sung
+          theo ngày.
+        </p>
+        <div class="chart-wrap"><canvas id="chart"></canvas></div>
+      </div>
+      <div class="card">
+        <h2 class="card-title">Phân bố tín hiệu</h2>
+        <p class="card-subtitle" style="margin-bottom: 0.5rem">
+          90 ngày gần nhất
+        </p>
+        <div class="donut-wrap"><canvas id="donut-chart"></canvas></div>
+        <p
+          id="donut-summary"
+          style="
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin: 0.25rem 0 0;
+          "
+        ></p>
+      </div>
+    </div>
+
+    <!-- ── Macro charts: 4 biểu đồ tách riêng ── -->
+    <div class="card" id="macro-card">
+      <h2 class="card-title">Chỉ số vĩ mô</h2>
+      <p class="card-subtitle">
+        4 biểu đồ tách riêng để dễ so sánh xu hướng theo từng chỉ số.
+      </p>
+      <div class="macro-grid">
+        <div class="macro-mini" id="macro-fed-card">
+          <h3 class="card-title" style="color: #f59e0b">Lãi suất FED (%)</h3>
+          <p class="macro-help">Nhấn để xem giải thích chỉ số</p>
+          <p class="card-subtitle" id="macro-fed-note">Đang tải...</p>
+          <div class="chart-wrap"><canvas id="macro-fed-chart"></canvas></div>
+        </div>
+        <div class="macro-mini" id="macro-world-card">
+          <h3 class="card-title" style="color: #4ade80">Vàng TG (USD/oz)</h3>
+          <p class="macro-help">Nhấn để xem giải thích chỉ số</p>
+          <p class="card-subtitle" id="macro-world-note">Đang tải...</p>
+          <div class="chart-wrap"><canvas id="macro-world-chart"></canvas></div>
+        </div>
+        <div class="macro-mini" id="macro-dxy-card">
+          <h3 class="card-title" style="color: #38bdf8">DXY Index</h3>
+          <p class="macro-help">Nhấn để xem giải thích chỉ số</p>
+          <p class="card-subtitle" id="macro-dxy-note">Đang tải...</p>
+          <div class="chart-wrap"><canvas id="macro-dxy-chart"></canvas></div>
+        </div>
+        <div class="macro-mini" id="macro-vn-card">
+          <h3 class="card-title" style="color: #a78bfa">Lãi suất VN (%)</h3>
+          <p class="macro-help">Nhấn để xem giải thích chỉ số</p>
+          <p class="card-subtitle" id="macro-vn-note">Đang tải...</p>
+          <div class="chart-wrap"><canvas id="macro-vn-chart"></canvas></div>
+        </div>
+      </div>
+      <p class="card-subtitle" style="margin: 0.5rem 0 0">
+        Nguồn: Yahoo Finance (DXY, Gold) · FRED (FED) · Webgia (VN lãi suất)
       </p>
     </div>
 
-    <!-- Cột 3: track record -->
-    <div class="signal-track">
-      <div class="label">Độ chính xác (30 ngày)</div>
-      <div class="track-nums">
-        <span class="track-acc" id="track-acc" style="color:#22c55e;">--%</span>
-      </div>
-      <div class="track-detail" id="track-detail">Đang tính...</div>
-    </div>
-
-    <!-- Disclaimer -->
-    <div class="signal-disclaimer">
-      ⚠️ Tín hiệu chỉ mang tính tham khảo, dựa trên mô hình phân tích 15 năm dữ liệu giá vàng.
-      Vui lòng kết hợp với lời khuyên đầu tư ở trên và ý kiến chuyên gia trước khi quyết định.
-    </div>
-  </div>
-
-  <!-- ── Main chart + mini donut ── -->
-  <div class="charts-row">
-    <div class="card">
-      <h2 class="card-title" id="chart-title">Giá vàng &amp; dự đoán (90 ngày gần nhất)</h2>
-      <p class="card-subtitle">Click vào điểm trên biểu đồ để xem tin tức &amp; phân tích bổ sung theo ngày.</p>
-      <div class="chart-wrap"><canvas id="chart"></canvas></div>
-    </div>
-    <div class="card">
-      <h2 class="card-title">Phân bố tín hiệu</h2>
-      <p class="card-subtitle" style="margin-bottom:0.5rem;">90 ngày gần nhất</p>
-      <div class="donut-wrap"><canvas id="donut-chart"></canvas></div>
-      <p id="donut-summary" style="text-align:center;font-size:0.8rem;color:var(--text-muted);margin:0.25rem 0 0;"></p>
-    </div>
-  </div>
-
-  <!-- ── Macro chart (đơn giản hoá: mặc định 2 đường) ── -->
-  <div class="card" id="macro-card">
-    <h2 class="card-title">Chỉ số vĩ mô</h2>
-    <p class="card-subtitle">FED rate &amp; Vàng thế giới — 2 chỉ số ảnh hưởng lớn nhất. Bật thêm DXY/Lãi suất VN nếu
-      cần.</p>
-    <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:0.75rem;">
-      <label
-        style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;color:var(--text-muted);">
-        <input type="checkbox" id="tog-fed" checked> <span style="color:#f59e0b;">●</span> Lãi suất FED (%)
-      </label>
-      <label
-        style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;color:var(--text-muted);">
-        <input type="checkbox" id="tog-world" checked> <span style="color:#4ade80;">●</span> Vàng TG (USD/oz)
-      </label>
-      <label
-        style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;color:var(--text-muted);">
-        <input type="checkbox" id="tog-dxy"> <span style="color:#38bdf8;">●</span> DXY Index
-      </label>
-      <label
-        style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;color:var(--text-muted);">
-        <input type="checkbox" id="tog-vn"> <span style="color:#a78bfa;">●</span> Lãi suất VN (%)
-      </label>
-    </div>
-    <div class="chart-wrap" style="height:280px;"><canvas id="macro-chart"></canvas></div>
-    <p class="card-subtitle" style="margin:0.5rem 0 0;">
-      Nguồn: Yahoo Finance (DXY, Gold) · FRED (FED) · Webgia (VN lãi suất)
-    </p>
-  </div>
-
-  <!-- ── Collapsible: Chi tiết kỹ thuật ── -->
-  <button class="collapsible-toggle" id="tech-toggle" onclick="toggleTech()">
-    <span class="arrow">▼</span>
-    <span>Chi tiết kỹ thuật (Premium &amp; RSI) — dành cho nhà đầu tư chuyên sâu</span>
-  </button>
-  <div class="collapsible-content" id="tech-content">
-    <div class="charts-row" id="feature-charts-row">
-      <div class="card">
-        <h2 class="card-title">Premium nội địa &amp; giá quy đổi (90 ngày)</h2>
-        <p class="card-subtitle">Premium (%) = chênh lệch giá VN so với thế giới. Input của model XGBoost.</p>
-        <div class="chart-wrap" style="height:280px;"><canvas id="feature-premium-chart"></canvas></div>
-      </div>
-      <div class="card">
-        <h2 class="card-title">RSI 14 ngày &amp; động lượng giá</h2>
-        <p class="card-subtitle">RSI_14: &lt;30 = oversold (có thể mua), &gt;70 = overbought (cẩn thận). Input model.
-        </p>
-        <div class="chart-wrap" style="height:280px;"><canvas id="feature-rsi-chart"></canvas></div>
-      </div>
-    </div>
-  </div>
-
-  <div id="error-box"></div>
-
-  <!-- ── Modal ngày ── -->
-  <div class="modal-overlay" id="date-detail-modal" aria-hidden="true">
-    <div class="modal-box">
-      <div class="modal-header">
-        <h3 id="date-detail-title">Chi tiết ngày</h3>
-        <button type="button" class="modal-close" id="date-detail-close" aria-label="Đóng">&times;</button>
-      </div>
-      <div class="modal-body">
-        <p class="date-meta" id="date-detail-meta"></p>
-        <p style="margin:0 0 0.25rem;font-weight:600;color:#e2e8f0;">Tin tức 24–48h gần đây</p>
-        <div class="news-list" id="date-detail-news"></div>
-        <div class="supplement-box" id="date-detail-supplement" style="display:none;">
-          <h4>Phân tích tin tức (LLM)</h4>
-          <p style="margin:0.25rem 0;">
-            <strong>Tín hiệu điều chỉnh:</strong>
-            <span id="date-detail-signal" class="prediction-badge">--</span>
-            &nbsp;<span id="date-detail-confidence" style="font-size:0.82rem;color:#94a3b8;"></span>
+    <!-- ── Collapsible: Chi tiết kỹ thuật ── -->
+    <button class="collapsible-toggle" id="tech-toggle" onclick="toggleTech()">
+      <span class="arrow">▼</span>
+      <span
+        >Chi tiết kỹ thuật (Premium &amp; RSI) — dành cho nhà đầu tư chuyên
+        sâu</span
+      >
+    </button>
+    <div class="collapsible-content" id="tech-content">
+      <div class="charts-row" id="feature-charts-row">
+        <div class="card">
+          <h2 class="card-title">
+            Premium nội địa &amp; giá quy đổi (90 ngày)
+          </h2>
+          <p class="card-subtitle">
+            Premium (%) = chênh lệch giá VN so với thế giới. Input của model
+            XGBoost.
           </p>
-          <p style="margin:0.5rem 0 0.25rem;color:#cbd5e1;line-height:1.6;">
-            <strong>Lý do:</strong> <span id="date-detail-reasoning"></span>
+          <div class="chart-wrap" style="height: 280px">
+            <canvas id="feature-premium-chart"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <h2 class="card-title">RSI 14 ngày &amp; động lượng giá</h2>
+          <p class="card-subtitle">
+            RSI_14: &lt;30 = oversold (có thể mua), &gt;70 = overbought (cẩn
+            thận). Input model.
           </p>
-          <p style="margin:0.25rem 0;">
-            <span class="risk-tag" id="date-detail-risk"></span>
+          <div class="chart-wrap" style="height: 280px">
+            <canvas id="feature-rsi-chart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="error-box"></div>
+
+    <!-- ── Modal ngày ── -->
+    <div class="modal-overlay" id="date-detail-modal" aria-hidden="true">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h3 id="date-detail-title">Chi tiết ngày</h3>
+          <button
+            type="button"
+            class="modal-close"
+            id="date-detail-close"
+            aria-label="Đóng"
+          >
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="date-meta" id="date-detail-meta"></p>
+          <p style="margin: 0 0 0.25rem; font-weight: 600; color: #e2e8f0">
+            Tin tức 24–48h gần đây
           </p>
-          <p style="margin:0.25rem 0;color:#94a3b8;font-size:0.82rem;">
-            <strong>Ghi chú giá:</strong> <span id="date-detail-price-note"></span>
+          <div class="news-list" id="date-detail-news"></div>
+          <div
+            class="supplement-box"
+            id="date-detail-supplement"
+            style="display: none"
+          >
+            <h4>Phân tích tin tức (LLM)</h4>
+            <p style="margin: 0.25rem 0">
+              <strong>Tín hiệu điều chỉnh:</strong>
+              <span id="date-detail-signal" class="prediction-badge">--</span>
+              &nbsp;<span
+                id="date-detail-confidence"
+                style="font-size: 0.82rem; color: #94a3b8"
+              ></span>
+            </p>
+            <p
+              style="margin: 0.5rem 0 0.25rem; color: #cbd5e1; line-height: 1.6"
+            >
+              <strong>Lý do:</strong> <span id="date-detail-reasoning"></span>
+            </p>
+            <p style="margin: 0.25rem 0">
+              <span class="risk-tag" id="date-detail-risk"></span>
+            </p>
+            <p style="margin: 0.25rem 0; color: #94a3b8; font-size: 0.82rem">
+              <strong>Ghi chú giá:</strong>
+              <span id="date-detail-price-note"></span>
+            </p>
+          </div>
+          <p class="loading" id="date-detail-loading" style="display: none">
+            Đang tải tin và phân tích...
           </p>
         </div>
-        <p class="loading" id="date-detail-loading" style="display:none;">Đang tải tin và phân tích...</p>
       </div>
     </div>
-  </div>
 
-  <script>
-    // ── Chart.js defaults ──────────────────────────────────────────────────────
-    try {
-      if (typeof Chart !== 'undefined') {
-        Chart.defaults.color = '#94a3b8';
-        if (Chart.defaults.borderColor !== undefined)
-          Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
-      }
-    } catch (e) { }
+    <!-- ── Modal giải thích chỉ số vĩ mô ── -->
+    <div class="modal-overlay" id="macro-info-modal" aria-hidden="true">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h3 id="macro-info-title">Giải thích chỉ số</h3>
+          <button
+            type="button"
+            class="modal-close"
+            id="macro-info-close"
+            aria-label="Đóng"
+          >
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <p
+            id="macro-info-what"
+            style="
+              margin: 0 0 0.7rem;
+              color: var(--text-soft);
+              line-height: 1.6;
+            "
+          ></p>
+          <p
+            id="macro-info-impact"
+            style="
+              margin: 0 0 0.7rem;
+              color: var(--text-soft);
+              line-height: 1.6;
+            "
+          ></p>
+          <p
+            id="macro-info-note"
+            style="
+              margin: 0;
+              color: var(--text-muted);
+              font-size: 0.85rem;
+              line-height: 1.6;
+            "
+          ></p>
+        </div>
+      </div>
+    </div>
 
-    let chart = null, donutChart = null, featurePremiumChart = null, featureRsiChart = null;
-    let _labels = ['NOT_BUY', 'BUY'];
-    let _chartDates = [], _preds = [], _probs = [];
+    <script>
+      const THEME_KEY = "dss-dashboard-theme";
 
-    // ── Helpers ────────────────────────────────────────────────────────────────
-    function predClass(pred) {
-      if (!pred || pred === 'N/A') return 'na';
-      return pred.toLowerCase().replace(/[^a-z]/g, '_');
-    }
-    function predColor(pred) {
-      const m = { BUY: '#22c55e', NOT_BUY: '#60a5fa', SELL: '#ef4444', HOLD: '#eab308' };
-      return m[pred] || 'rgba(0,0,0,0)';
-    }
-    function fmt(n) { return Number(n).toLocaleString('vi-VN'); }
-
-    // ── Track record: tính % BUY đúng trong N ngày cuối ───────────────────────
-    // "Đúng" = tín hiệu BUY và giá thực tế tăng trong vùng dự đoán đó
-    // Vì không có ground truth trực tiếp, dùng proxy: trong 30 ngày cuối,
-    // đếm ngày BUY có prob >= 0.5 (confidence cao) / tổng ngày BUY
-    function calcTrackRecord(preds, probs, window) {
-      const n = Math.min(window, preds.length);
-      const slice_p = preds.slice(-n);
-      const slice_pr = probs.slice(-n);
-      const buyDays = slice_p.filter(p => p === 'BUY').length;
-      const highConfBuy = slice_p.filter((p, i) => p === 'BUY' && (slice_pr[i] || 0) >= 0.5).length;
-      return { buyDays, highConfBuy, total: n };
-    }
-
-    function setTrackRecord(preds, probs) {
-      const r = calcTrackRecord(preds, probs, 30);
-      const accEl = document.getElementById('track-acc');
-      const detEl = document.getElementById('track-detail');
-      if (r.buyDays === 0) {
-        accEl.textContent = '--';
-        detEl.textContent = 'Không có tín hiệu BUY trong 30 ngày';
-        return;
-      }
-      const pct = Math.round((r.highConfBuy / r.buyDays) * 100);
-      accEl.textContent = pct + '%';
-      accEl.style.color = pct >= 60 ? '#22c55e' : pct >= 40 ? '#eab308' : '#ef4444';
-      detEl.textContent = r.highConfBuy + '/' + r.buyDays + ' tín hiệu BUY có confidence ≥50%';
-    }
-
-    // ── Confidence bar ─────────────────────────────────────────────────────────
-    function setConfidence(prob, signal) {
-      const fill = document.getElementById('conf-bar-fill');
-      const label = document.getElementById('conf-label');
-      if (prob == null) { label.textContent = '--'; fill.style.width = '0%'; return; }
-      const pct = Math.round(prob * 100);
-      fill.style.width = pct + '%';
-      fill.style.background = signal === 'BUY' ? '#22c55e' : '#60a5fa';
-      label.textContent = pct + '%';
-    }
-
-    // ── Set latest ─────────────────────────────────────────────────────────────
-    function setLatest(latest, goldCode, labels, predictions, probabilities) {
-      const pred = latest.prediction || 'N/A';
-      const el = document.getElementById('latest-prediction');
-      const transMap = { 'BUY': 'TÍN HIỆU MUA', 'NOT_BUY': 'CHƯA CÓ TÍN HIỆU', 'N/A': 'N/A' };
-      el.textContent = transMap[pred] || pred;
-      el.className = 'prediction-badge ' + predClass(pred);
-
-      document.getElementById('metric-price').textContent =
-        latest.price != null ? fmt(latest.price) + ' VND' : '--';
-      document.getElementById('metric-date').textContent =
-        latest.date ? latest.date.slice(0, 10) : '--';
-      document.getElementById('latest-pred-date').textContent =
-        latest.prediction_date ? '(dự đoán cho ' + latest.prediction_date.slice(0, 10) + ')' : '';
-
-      const sel = document.getElementById('gold-code');
-      const selText = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : '';
-      document.getElementById('metric-gold-code').textContent =
-        goldCode ? (selText || goldCode) : 'Tất cả loại';
-      document.getElementById('gold-code-hint').textContent =
-        goldCode ? (selText || goldCode) : 'Chọn loại để xem chi tiết';
-
-      const title = document.getElementById('chart-title');
-      const selName = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : '';
-      title.textContent = goldCode
-        ? 'Giá vàng ' + (selName || goldCode) + ' (90 ngày gần nhất)'
-        : 'Giá vàng tất cả loại (90 ngày gần nhất)';
-
-      // Phân bố metric card
-      const L = (labels && labels.length) ? labels : _labels;
-      const counts = {};
-      L.forEach(l => { counts[l] = 0; });
-      (predictions || []).forEach(p => {
-        if (p && p !== 'N/A') counts[p] = (counts[p] || 0) + 1;
-      });
-      const total = (predictions || []).filter(p => p && p !== 'N/A').length;
-      const buyCount = counts['BUY'] || 0;
-      const buyPct = total > 0 ? Math.round(buyCount / total * 100) : 0;
-      document.getElementById('metric-distribution').textContent =
-        total > 0 ? buyPct + '% Nên mua' : '--';
-      const labelMap = { 'BUY': 'Nên mua', 'NOT_BUY': 'Chưa nên mua' };
-      document.getElementById('metric-distribution-detail').textContent =
-        L.map(l => (labelMap[l] || l) + ': ' + (counts[l] || 0) + ' ngày').join(' · ');
-
-      // Confidence bar
-      const latestProb = latest.prediction_date
-        ? (probabilities || []).slice(-10).find((_, i, arr) => arr) // lấy prob mới nhất
-        : null;
-      // Tìm prob của ngày dự đoán mới nhất
-      const lastProbIdx = (predictions || []).map((p, i) => p && p !== 'N/A' ? i : -1)
-        .filter(i => i >= 0).pop();
-      const lastProb = lastProbIdx != null ? (probabilities || [])[lastProbIdx] : null;
-      setConfidence(lastProb, pred);
-
-      // Track record
-      setTrackRecord(predictions || [], probabilities || []);
-    }
-
-    function showError(msg) {
-      document.getElementById('error-box').innerHTML =
-        '<div class="error-msg">' + msg + '</div>';
-    }
-    function clearError() { document.getElementById('error-box').innerHTML = ''; }
-
-    // ── Main chart ─────────────────────────────────────────────────────────────
-    function drawChart(data) {
-      const labels = (data.dates || []).map(d => d.slice(0, 10));
-      _chartDates = (data.dates || []).map(d => String(d).slice(0, 10));
-      _preds = data.predictions || [];
-      _probs = data.probabilities || [];
-      const prices = data.prices || [];
-      const colors = _preds.map((p, i) => {
-        if (!p || p === 'N/A') return 'rgba(0,0,0,0)';
-        const prob = (_probs[i] != null) ? _probs[i] : (p === 'BUY' ? 0.7 : 0.3);
-        if (p === 'BUY') return `rgba(34,197,94,${Math.max(0.35, prob).toFixed(2)})`;
-        if (p === 'NOT_BUY') return `rgba(96,165,250,${Math.max(0.35, 1 - prob).toFixed(2)})`;
-        if (p === 'SELL') return 'rgba(239,68,68,0.85)';
-        return 'rgba(0,0,0,0)';
-      });
-      const ctx = document.getElementById('chart').getContext('2d');
-      if (chart) chart.destroy();
-      chart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [
-            {
-              label: 'Giá bán TB (VND)',
-              data: prices,
-              borderColor: '#3b82f6',
-              backgroundColor: 'rgba(59,130,246,0.1)',
-              fill: true, tension: 0.2, pointRadius: 0, pointHoverRadius: 4,
-            },
-            {
-              label: 'Tín hiệu',
-              data: prices,
-              pointBackgroundColor: colors,
-              pointBorderColor: colors,
-              pointRadius: _preds.map(p => (!p || p === 'N/A') ? 0 : 5),
-              pointHoverRadius: 7,
-              showLine: false,
-            },
-          ],
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          interaction: { intersect: false, mode: 'index' },
-          onClick(evt, elements) {
-            if (elements.length > 0 && _chartDates.length > 0) {
-              const idx = elements[0].index;
-              if (idx >= 0 && idx < _chartDates.length) openDateDetail(_chartDates[idx]);
-            }
-          },
-          plugins: {
-            legend: { position: 'top' },
-            tooltip: {
-              callbacks: {
-                afterLabel(ctx) {
-                  const p = _preds[ctx.dataIndex];
-                  const prob = _probs[ctx.dataIndex];
-                  let t = 'Dự đoán: ' + (p && p !== 'N/A' ? p : 'chưa có (cần 7 ngày sau)');
-                  if (prob != null && p && p !== 'N/A')
-                    t += '  (xác suất BUY: ' + Math.round(prob * 100) + '%)';
-                  return t;
-                },
-                label(ctx) {
-                  const v = ctx.raw;
-                  return (ctx.dataset.label || '') + ': ' +
-                    (typeof v === 'number' ? fmt(v) + ' VND' : v);
-                },
-              },
-            },
-          },
-          scales: {
-            x: { title: { display: true, text: 'Ngày', color: '#94a3b8' }, ticks: { maxTicksLimit: 12, color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.06)' } },
-            y: { title: { display: true, text: 'VND', color: '#94a3b8' }, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.06)' } },
-          },
-        },
-      });
-    }
-
-    // ── Donut (nhỏ hơn, không trùng metric card) ───────────────────────────────
-    function drawDonut(predictions, labels) {
-      const L = (labels && labels.length) ? labels : _labels;
-      const counts = {};
-      L.forEach(l => { counts[l] = 0; });
-      (predictions || []).forEach(p => {
-        if (p && p !== 'N/A') counts[p] = (counts[p] || 0) + 1;
-      });
-      const colorMap = { BUY: '#22c55e', NOT_BUY: '#60a5fa', HOLD: '#eab308', SELL: '#ef4444' };
-      const total = L.reduce((s, l) => s + (counts[l] || 0), 0);
-      const el = document.getElementById('donut-chart');
-      if (!el) return;
-      if (donutChart) donutChart.destroy();
-      donutChart = new Chart(el.getContext('2d'), {
-        type: 'doughnut',
-        data: {
-          labels: L,
-          datasets: [{
-            data: L.map(l => total > 0 ? Math.round((counts[l] || 0) / total * 100) : 0),
-            backgroundColor: L.map(l => colorMap[l] || '#64748b'),
-            borderColor: 'var(--card)', borderWidth: 2, hoverOffset: 6,
-          }],
-        },
-        options: {
-          responsive: true, maintainAspectRatio: true, cutout: '65%',
-          plugins: {
-            legend: { position: 'bottom', labels: { font: { size: 12 }, padding: 12 } },
-            tooltip: {
-              callbacks: {
-                label(ctx) {
-                  return ctx.label + ': ' + ctx.raw + '% (' + (counts[ctx.label] || 0) + ' ngày)';
-                }
-              }
-            },
-          },
-        },
-      });
-      // Summary text bên dưới
-      const buyPct = total > 0 ? Math.round((counts['BUY'] || 0) / total * 100) : 0;
-      document.getElementById('donut-summary').textContent =
-        total > 0 ? (counts['BUY'] || 0) + ' ngày BUY · ' + (counts['NOT_BUY'] || 0) + ' ngày NOT_BUY' : '';
-    }
-
-    // ── Feature charts (kỹ thuật, ẩn mặc định) ────────────────────────────────
-    function drawFeatureCharts(data) {
-      const dates = data.dates || [];
-      const features = data.features || {};
-      const labels = dates.map(d => (d || '').slice(0, 10));
-      const gridOpt = { color: 'rgba(255,255,255,0.06)' };
-      const ticksOpt = { color: '#94a3b8', maxTicksLimit: 12 };
-
-      const hasPremium = features.premium_pct && features.premium_pct.length;
-      const hasWorld = features.world_price_vnd && features.world_price_vnd.length;
-      if (hasPremium || hasWorld) {
-        const el = document.getElementById('feature-premium-chart');
-        if (el) {
-          if (featurePremiumChart) featurePremiumChart.destroy();
-          const ds = [];
-          if (hasPremium) ds.push({ label: 'Premium nội địa (%)', data: features.premium_pct, borderColor: '#a78bfa', backgroundColor: 'rgba(167,139,250,0.15)', fill: true, tension: 0.2, pointRadius: 0, yAxisID: 'yPct' });
-          if (hasWorld) ds.push({ label: 'Giá TG quy VND (tr)', data: features.world_price_vnd.map(v => v != null ? v / 1e6 : null), borderColor: '#38bdf8', backgroundColor: 'rgba(56,189,248,0.1)', fill: true, tension: 0.2, pointRadius: 0, yAxisID: 'yVnd' });
-          featurePremiumChart = new Chart(el.getContext('2d'), {
-            type: 'line', data: { labels, datasets: ds },
-            options: {
-              responsive: true, maintainAspectRatio: false,
-              interaction: { intersect: false, mode: 'index' },
-              scales: {
-                x: { ticks: ticksOpt, grid: gridOpt },
-                yPct: { type: 'linear', position: 'left', title: { display: true, text: 'Premium (%)', color: '#94a3b8' }, ticks: { ...ticksOpt, callback: v => v + '%' }, grid: gridOpt },
-                yVnd: { type: 'linear', position: 'right', title: { display: true, text: 'VND (triệu)', color: '#94a3b8' }, ticks: ticksOpt, grid: { drawOnChartArea: false } },
-              },
-              plugins: { legend: { position: 'top' } },
-            },
-          });
-        }
-      }
-
-      const hasRsi = features.RSI_14 && features.RSI_14.length;
-      const hasR3 = features.cum_return_3d_pct && features.cum_return_3d_pct.length;
-      const hasR7 = features.cum_return_7d_pct && features.cum_return_7d_pct.length;
-      if (hasRsi || hasR3 || hasR7) {
-        const el = document.getElementById('feature-rsi-chart');
-        if (el) {
-          if (featureRsiChart) featureRsiChart.destroy();
-          const ds = [];
-          if (hasRsi) ds.push({ label: 'RSI 14 ngày', data: features.RSI_14, borderColor: '#f472b6', backgroundColor: 'rgba(244,114,182,0.1)', fill: true, tension: 0.2, pointRadius: 0, yAxisID: 'yRsi' });
-          if (hasR3) ds.push({ label: 'Lợi nhuận 3D (%)', data: features.cum_return_3d_pct, borderColor: '#67e8f9', tension: 0.2, pointRadius: 0, yAxisID: 'yRet' });
-          if (hasR7) ds.push({ label: 'Lợi nhuận 7D (%)', data: features.cum_return_7d_pct, borderColor: '#4ade80', tension: 0.2, pointRadius: 0, yAxisID: 'yRet' });
-          // Đường tham chiếu RSI 30/70
-          const rsiRef = Array(labels.length);
-          featureRsiChart = new Chart(el.getContext('2d'), {
-            type: 'line', data: { labels, datasets: ds },
-            options: {
-              responsive: true, maintainAspectRatio: false,
-              interaction: { intersect: false, mode: 'index' },
-              scales: {
-                x: { ticks: ticksOpt, grid: gridOpt },
-                yRsi: { type: 'linear', position: 'left', min: 0, max: 100, title: { display: true, text: 'RSI', color: '#94a3b8' }, ticks: ticksOpt, grid: gridOpt },
-                yRet: { type: 'linear', position: 'right', title: { display: true, text: 'Lợi nhuận (%)', color: '#94a3b8' }, ticks: { ...ticksOpt, callback: v => v + '%' }, grid: { drawOnChartArea: false } },
-              },
-              plugins: {
-                legend: { position: 'top' },
-                annotation: undefined,
-              },
-            },
-          });
-        }
-      }
-    }
-
-    // ── Collapsible toggle ─────────────────────────────────────────────────────
-    function toggleTech() {
-      const btn = document.getElementById('tech-toggle');
-      const content = document.getElementById('tech-content');
-      btn.classList.toggle('open');
-      content.classList.toggle('open');
-      // Resize charts khi mở để render đúng
-      if (content.classList.contains('open')) {
-        setTimeout(() => {
-          if (featurePremiumChart) featurePremiumChart.resize();
-          if (featureRsiChart) featureRsiChart.resize();
-        }, 50);
-      }
-    }
-
-    // ── Load chính ─────────────────────────────────────────────────────────────
-    async function load() {
-      const goldCode = document.getElementById('gold-code').value || '';
-      setLatest({}, goldCode || null, _labels, [], []);
-      clearError();
-      document.getElementById('latest-prediction').textContent = 'Đang tải...';
-      document.getElementById('latest-prediction').className = 'prediction-badge loading';
-
-      try {
-        const url = goldCode
-          ? '/api/predict?gold_code=' + encodeURIComponent(goldCode)
-          : '/api/predict';
-        const r = await fetch(url);
-        const data = await r.json();
-        if (!r.ok) { showError(data.error || 'Lỗi API'); return; }
-        if (Array.isArray(data.labels) && data.labels.length > 0) _labels = data.labels;
-        document.getElementById('mode-pill').textContent = _labels.join(' / ');
-        setLatest(
-          data.latest || {},
-          data.gold_code || null,
-          data.labels,
-          data.predictions,
-          data.probabilities,
-        );
-        drawChart(data);
-        drawDonut(data.predictions || [], data.labels || _labels);
-        drawFeatureCharts(data);
-      } catch (e) {
-        showError('Không kết nối được server. Chạy: python frontend/app.py');
-      }
-    }
-
-    // ── Gold codes dropdown (load động) ───────────────────────────────────────
-    let _goldNames = {}; // {code: Vietnamese name}
-    async function loadGoldCodes() {
-      try {
-        const r = await fetch('/api/gold_codes');
-        if (!r.ok) return;
-        const data = await r.json();
-        const sel = document.getElementById('gold-code');
-        _goldNames = data.gold_names || {};
-        (data.gold_codes || data || []).forEach(code => {
-          const opt = document.createElement('option');
-          opt.value = code;
-          opt.textContent = _goldNames[code] || code;
-          sel.appendChild(opt);
-        });
-      } catch (e) { }
-    }
-
-    // ── Date detail modal ──────────────────────────────────────────────────────
-    function openDateDetail(dateStr) {
-      const modal = document.getElementById('date-detail-modal');
-      const title = document.getElementById('date-detail-title');
-      const meta = document.getElementById('date-detail-meta');
-      const newsEl = document.getElementById('date-detail-news');
-      const suppEl = document.getElementById('date-detail-supplement');
-      const loadEl = document.getElementById('date-detail-loading');
-      title.textContent = 'Chi tiết ngày ' + dateStr;
-      meta.textContent = 'Đang tải...';
-      newsEl.innerHTML = '';
-      suppEl.style.display = 'none';
-      loadEl.style.display = 'block';
-      modal.classList.add('show');
-      modal.setAttribute('aria-hidden', 'false');
-
-      const goldCode = document.getElementById('gold-code').value || '';
-      let url = '/api/date-detail?date=' + encodeURIComponent(dateStr);
-      if (goldCode) url += '&gold_code=' + encodeURIComponent(goldCode);
-
-      fetch(url)
-        .then(r => r.json())
-        .then(data => {
-          loadEl.style.display = 'none';
-          if (data.error && !data.date) { meta.textContent = data.error; return; }
-          const price = data.price != null ? fmt(data.price) + ' VND' : '—';
-          meta.textContent = 'Giá: ' + price + ' · Dự đoán ML: ' + (data.ml_prediction || '—');
-
-          newsEl.innerHTML = '';
-          if ((data.news || []).length) {
-            data.news.forEach(n => {
-              const d = document.createElement('div');
-              d.className = 'news-item';
-              const titleSafe = (n.title || '').replace(/</g, '&lt;');
-              const snippetSafe = (n.snippet || '').slice(0, 200).replace(/</g, '&lt;');
-              const urlHref = n.url ? `<a href="${n.url}" target="_blank" rel="noopener" style="color:#60a5fa;font-size:0.78rem;">↗ Đọc thêm</a>` : '';
-              const srcDate = [n.source, (n.published || '').slice(0, 10)].filter(Boolean).join(' · ');
-              d.innerHTML = `<strong>${titleSafe}</strong>` +
-                `<div style="color:#64748b;font-size:0.78rem;margin:2px 0;">${srcDate}</div>` +
-                (snippetSafe ? `<div style="color:#94a3b8;">${snippetSafe}</div>` : '') +
-                (urlHref ? `<div style="margin-top:4px;">${urlHref}</div>` : '');
-              newsEl.appendChild(d);
-            });
-          } else {
-            newsEl.innerHTML = '<p class="news-item" style="color:#94a3b8;">Không có tin nào trong 48h gần đây.</p>';
+      function setChartDefaultsByTheme(theme) {
+        try {
+          if (typeof Chart === "undefined") return;
+          const dark = theme === "dark";
+          Chart.defaults.color = dark ? "#9ab0ca" : "#5e738b";
+          if (Chart.defaults.borderColor !== undefined) {
+            Chart.defaults.borderColor = dark
+              ? "rgba(255,255,255,0.08)"
+              : "rgba(96,127,163,0.2)";
           }
+        } catch (e) {}
+      }
 
-          const sup = data.llm_supplement;
-          if (sup) {
-            suppEl.style.display = 'block';
-            const sigEl = document.getElementById('date-detail-signal');
-            sigEl.textContent = sup.adjusted_signal || '—';
-            sigEl.className = 'prediction-badge ' + predClass(sup.adjusted_signal || '');
-            document.getElementById('date-detail-confidence').textContent =
-              sup.confidence != null ? Math.round(sup.confidence * 100) + '% tin cậy' : '';
-            document.getElementById('date-detail-reasoning').textContent = sup.reasoning || '—';
-            document.getElementById('date-detail-price-note').textContent = sup.updated_price_note || '—';
-            const riskEl = document.getElementById('date-detail-risk');
-            riskEl.textContent = sup.key_risk ? ('⚠ ' + sup.key_risk) : '';
-            riskEl.style.display = sup.key_risk ? 'inline-block' : 'none';
+      function applyTheme(theme, options) {
+        const opts = options || {};
+        const root = document.documentElement;
+        const next = theme === "dark" ? "dark" : "light";
+        root.setAttribute("data-theme", next);
 
-            // Cập nhật reasoning trong signal card nếu là ngày mới nhất
-            const latest = _chartDates[_chartDates.length - 1];
-            if (dateStr === latest && sup.reasoning) {
-              document.getElementById('signal-reasoning-text').textContent = sup.reasoning;
-              document.getElementById('signal-reasoning-text').style.fontStyle = 'normal';
-              document.getElementById('signal-reasoning-text').style.color = '#cbd5e1';
-            }
-          } else {
-            suppEl.style.display = 'none';
-          }
-        })
-        .catch(() => {
-          loadEl.style.display = 'none';
-          meta.textContent = 'Không tải được dữ liệu. Kiểm tra kết nối và API key.';
-        });
-    }
+        const btn = document.getElementById("theme-toggle-btn");
+        if (btn) btn.textContent = next === "dark" ? "Tối" : "Sáng";
 
-    function closeDateDetailModal() {
-      const modal = document.getElementById('date-detail-modal');
-      modal.classList.remove('show');
-      modal.setAttribute('aria-hidden', 'true');
-    }
-    (function wireDateDetailModal() {
-      document.getElementById('date-detail-close')
-        ?.addEventListener('click', closeDateDetailModal);
-      document.getElementById('date-detail-modal')
-        ?.addEventListener('click', e => { if (e.target.id === 'date-detail-modal') closeDateDetailModal(); });
-    })();
+        setChartDefaultsByTheme(next);
 
-    // ── Macro chart ────────────────────────────────────────────────────────────
-    const macroCtx = document.getElementById('macro-chart').getContext('2d');
-    let macroChart = null, _macroData = null;
-
-    const MACRO_DATASETS_CFG = [
-      { key: 'fed_rate', label: 'Lãi suất FED (%)', color: '#f59e0b', yAxis: 'yRate', tog: 'tog-fed', order: 1 },
-      { key: 'vn_rate', label: 'Lãi suất VN (%)', color: '#a78bfa', yAxis: 'yRate', tog: 'tog-vn', order: 2 },
-      { key: 'dxy_index', label: 'DXY Index', color: '#38bdf8', yAxis: 'yDXY', tog: 'tog-dxy', order: 3 },
-      { key: 'world_gold', label: 'Vàng TG (USD/oz)', color: '#4ade80', yAxis: 'yGold', tog: 'tog-world', order: 4 },
-    ];
-
-    function buildMacroChart(data) {
-      if (macroChart) macroChart.destroy();
-      const labels = (data.dates || []).map(d => d.slice(0, 10));
-      const datasets = MACRO_DATASETS_CFG
-        .filter(cfg => (data[cfg.key] || []).length > 0)
-        .map(cfg => {
-          const el = document.getElementById(cfg.tog);
-          return {
-            label: cfg.label, data: data[cfg.key],
-            borderColor: cfg.color, backgroundColor: cfg.color + '22',
-            fill: cfg.key === 'fed_rate', tension: 0.2,
-            pointRadius: 0, pointHoverRadius: 4,
-            yAxisID: cfg.yAxis, order: cfg.order,
-            hidden: el ? !el.checked : false,
-            borderWidth: cfg.key === 'fed_rate' ? 2.5 : 1.5,
-            borderDash: cfg.key === 'vn_rate' ? [5, 3] : [],
-          };
-        });
-
-      macroChart = new Chart(macroCtx, {
-        type: 'line',
-        data: { labels, datasets },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          interaction: { intersect: false, mode: 'index' },
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label(ctx) {
-                  const v = ctx.raw;
-                  const cfg = MACRO_DATASETS_CFG.find(c => c.label === ctx.dataset.label);
-                  if (!cfg) return ctx.dataset.label + ': ' + v;
-                  if (cfg.yAxis === 'yRate') return ctx.dataset.label + ': ' + (v != null ? v.toFixed(2) + '%' : 'N/A');
-                  if (cfg.yAxis === 'yGold') return ctx.dataset.label + ': $' + (v != null ? Number(v).toLocaleString('en-US') : 'N/A');
-                  return ctx.dataset.label + ': ' + (v != null ? Number(v).toFixed(2) : 'N/A');
-                }
-              }
-            }
-          },
-          scales: {
-            x: { title: { display: true, text: 'Ngày' }, ticks: { maxTicksLimit: 12, color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-            yRate: { type: 'linear', position: 'left', title: { display: true, text: 'Lãi suất (%)', color: '#94a3b8' }, ticks: { color: '#f59e0b', callback: v => v.toFixed(2) + '%' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-            yDXY: { type: 'linear', position: 'right', title: { display: true, text: 'DXY', color: '#94a3b8' }, ticks: { color: '#38bdf8' }, grid: { drawOnChartArea: false } },
-            yGold: { type: 'linear', position: 'right', display: true, title: { display: true, text: 'USD/oz', color: '#94a3b8' }, ticks: { color: '#4ade80' }, grid: { drawOnChartArea: false } },
-          },
-        },
-      });
-    }
-
-    function toggleMacroSeries() {
-      if (!macroChart || !_macroData) return;
-      MACRO_DATASETS_CFG.forEach(cfg => {
-        const el = document.getElementById(cfg.tog);
-        const ds = macroChart.data.datasets.find(d => d.label === cfg.label);
-        if (ds && el) ds.hidden = !el.checked;
-      });
-      macroChart.update();
-    }
-
-    async function loadMacro() {
-      try {
-        const r = await fetch('/api/macro');
-        const data = await r.json();
-        if (!r.ok) return;
-        _macroData = data;
-        buildMacroChart(data);
-        MACRO_DATASETS_CFG.forEach(cfg => {
-          document.getElementById(cfg.tog)?.addEventListener('change', toggleMacroSeries);
-        });
-      } catch (e) { }
-    }
-
-    // ── Advisory Panel ──────────────────────────────────────────────────────────
-    async function loadAdvisory() {
-      const sel = document.getElementById('gold-code');
-      const goldCode = sel ? sel.value : 'SJC_BAR';
-      const panel = document.getElementById('advisory-panel');
-      const skeleton = document.getElementById('adv-skeleton');
-      const content = document.getElementById('adv-content');
-
-      // Show skeleton
-      skeleton.style.display = 'block';
-      content.style.display = 'none';
-      panel.className = 'advisory-panel';
-
-      try {
-        const url = '/api/advisory?gold_code=' + encodeURIComponent(goldCode || 'SJC_BAR');
-        const resp = await fetch(url);
-        const data = await resp.json();
-
-        // Badge
-        const badge = document.getElementById('adv-badge');
-        const rec = data.final_recommendation || 'WATCH';
-        const recClass = rec.toLowerCase();
-        badge.textContent = data.recommendation_label || rec;
-        badge.className = 'advisory-badge ' + recClass;
-        panel.className = 'advisory-panel ' + recClass;
-
-        // Sublabel — human-friendly, no jargon
-        const sublabel = document.getElementById('adv-sublabel');
-        const parts = [];
-        if (data.llm_available === true && data.llm_signal) {
-          parts.push('Đã phân tích tin tức thị trường');
-          if (data.news_count > 0) parts.push(data.news_count + ' tin gần đây');
-        } else if (data.llm_available === false) {
-          parts.push('Chưa có phân tích tin tức');
+        if (!opts.skipPersist) {
+          try {
+            localStorage.setItem(THEME_KEY, next);
+          } catch (e) {}
         }
-        if (data.risk_level) {
-          const riskMap = { low: 'Rủi ro thấp', medium: 'Rủi ro vừa', high: 'Rủi ro cao' };
-          parts.push(riskMap[data.risk_level] || '');
+
+        if (!opts.skipReloadCharts) {
+          load();
+          loadMacro();
         }
-        sublabel.textContent = parts.filter(Boolean).join('  •  ');
+      }
 
-        // Reasons
-        const reasonsEl = document.getElementById('adv-reasons');
-        const reasons = data.reasons || [];
-        reasonsEl.innerHTML = reasons.map(r => '<li>' + r + '</li>').join('');
+      function initTheme() {
+        let saved = "light";
+        try {
+          saved = localStorage.getItem(THEME_KEY) || "light";
+        } catch (e) {}
+        applyTheme(saved, { skipReloadCharts: true, skipPersist: true });
+      }
 
-        // Outlook
-        const outlookEl = document.getElementById('adv-outlook');
-        const outlookMap = { 'tăng': '📈 Xu hướng TĂNG', 'giảm': '📉 Xu hướng GIẢM', 'sideway': '➡️ Đi ngang (sideway)' };
-        const outlookColors = { 'tăng': '#22c55e', 'giảm': '#ef4444', 'sideway': '#eab308' };
-        const ol = data.price_outlook_7d || 'sideway';
-        outlookEl.textContent = outlookMap[ol] || outlookMap['sideway'];
-        outlookEl.style.color = outlookColors[ol] || outlookColors['sideway'];
+      // ── Chart.js defaults ──────────────────────────────────────────────────────
+      initTheme();
+
+      let chart = null,
+        donutChart = null,
+        featurePremiumChart = null,
+        featureRsiChart = null;
+      let _labels = ["NOT_BUY", "BUY"];
+      let _chartDates = [],
+        _preds = [],
+        _probs = [];
+
+      // ── Helpers ────────────────────────────────────────────────────────────────
+      function predClass(pred) {
+        if (!pred || pred === "N/A") return "na";
+        return pred.toLowerCase().replace(/[^a-z]/g, "_");
+      }
+      function predColor(pred) {
+        const m = {
+          BUY: "#22c55e",
+          NOT_BUY: "#60a5fa",
+          SELL: "#ef4444",
+          HOLD: "#eab308",
+        };
+        return m[pred] || "rgba(0,0,0,0)";
+      }
+      function fmt(n) {
+        return Number(n).toLocaleString("vi-VN");
+      }
+
+      // ── Track record: tính % BUY đúng trong N ngày cuối ───────────────────────
+      // "Đúng" = tín hiệu BUY và giá thực tế tăng trong vùng dự đoán đó
+      // Vì không có ground truth trực tiếp, dùng proxy: trong 30 ngày cuối,
+      // đếm ngày BUY có prob >= 0.5 (confidence cao) / tổng ngày BUY
+      function calcTrackRecord(preds, probs, window) {
+        const n = Math.min(window, preds.length);
+        const slice_p = preds.slice(-n);
+        const slice_pr = probs.slice(-n);
+        const buyDays = slice_p.filter((p) => p === "BUY").length;
+        const highConfBuy = slice_p.filter(
+          (p, i) => p === "BUY" && (slice_pr[i] || 0) >= 0.5,
+        ).length;
+        return { buyDays, highConfBuy, total: n };
+      }
+
+      function setTrackRecord(preds, probs) {
+        const r = calcTrackRecord(preds, probs, 30);
+        const accEl = document.getElementById("track-acc");
+        const detEl = document.getElementById("track-detail");
+        if (r.buyDays === 0) {
+          accEl.textContent = "--";
+          detEl.textContent = "Không có tín hiệu BUY trong 30 ngày";
+          return;
+        }
+        const pct = Math.round((r.highConfBuy / r.buyDays) * 100);
+        accEl.textContent = pct + "%";
+        accEl.style.color =
+          pct >= 60 ? "#22c55e" : pct >= 40 ? "#eab308" : "#ef4444";
+        detEl.textContent =
+          r.highConfBuy + "/" + r.buyDays + " tín hiệu BUY có confidence ≥50%";
+      }
+
+      // ── Confidence bar ─────────────────────────────────────────────────────────
+      function setConfidence(prob, signal) {
+        const fill = document.getElementById("conf-bar-fill");
+        const label = document.getElementById("conf-label");
+        if (prob == null) {
+          label.textContent = "--";
+          fill.style.width = "0%";
+          return;
+        }
+        const pct = Math.round(prob * 100);
+        fill.style.width = pct + "%";
+        fill.style.background = signal === "BUY" ? "#22c55e" : "#60a5fa";
+        label.textContent = pct + "%";
+      }
+
+      // ── Set latest ─────────────────────────────────────────────────────────────
+      function setLatest(latest, goldCode, labels, predictions, probabilities) {
+        const pred = latest.prediction || "N/A";
+        const el = document.getElementById("latest-prediction");
+        const transMap = {
+          BUY: "TÍN HIỆU MUA",
+          NOT_BUY: "CHƯA CÓ TÍN HIỆU",
+          "N/A": "N/A",
+        };
+        el.textContent = transMap[pred] || pred;
+        el.className = "prediction-badge " + predClass(pred);
+
+        document.getElementById("metric-price").textContent =
+          latest.price != null ? fmt(latest.price) + " VND" : "--";
+        document.getElementById("metric-date").textContent = latest.date
+          ? latest.date.slice(0, 10)
+          : "--";
+        document.getElementById("latest-pred-date").textContent =
+          latest.prediction_date
+            ? "(dự đoán cho " + latest.prediction_date.slice(0, 10) + ")"
+            : "";
+
+        const sel = document.getElementById("gold-code");
+        const selText =
+          sel && sel.selectedIndex >= 0
+            ? sel.options[sel.selectedIndex].text
+            : "";
+        document.getElementById("metric-gold-code").textContent = goldCode
+          ? selText || goldCode
+          : "Tất cả loại";
+        document.getElementById("gold-code-hint").textContent = goldCode
+          ? selText || goldCode
+          : "Chọn loại để xem chi tiết";
+
+        const title = document.getElementById("chart-title");
+        const selName =
+          sel && sel.selectedIndex >= 0
+            ? sel.options[sel.selectedIndex].text
+            : "";
+        title.textContent = goldCode
+          ? "Giá vàng " + (selName || goldCode) + " (90 ngày gần nhất)"
+          : "Giá vàng tất cả loại (90 ngày gần nhất)";
+
+        // Phân bố metric card
+        const L = labels && labels.length ? labels : _labels;
+        const counts = {};
+        L.forEach((l) => {
+          counts[l] = 0;
+        });
+        (predictions || []).forEach((p) => {
+          if (p && p !== "N/A") counts[p] = (counts[p] || 0) + 1;
+        });
+        const total = (predictions || []).filter(
+          (p) => p && p !== "N/A",
+        ).length;
+        const buyCount = counts["BUY"] || 0;
+        const buyPct = total > 0 ? Math.round((buyCount / total) * 100) : 0;
+        document.getElementById("metric-distribution").textContent =
+          total > 0 ? buyPct + "% Nên mua" : "--";
+        const labelMap = { BUY: "Nên mua", NOT_BUY: "Chưa nên mua" };
+        document.getElementById("metric-distribution-detail").textContent =
+          L.map(
+            (l) => (labelMap[l] || l) + ": " + (counts[l] || 0) + " ngày",
+          ).join(" · ");
 
         // Confidence bar
-        const confPct = document.getElementById('adv-conf-pct');
-        const confFill = document.getElementById('adv-conf-fill');
-        let combinedConf = 0.5;
-        if (data.xgb_prob_buy != null && data.llm_confidence != null) {
-          combinedConf = data.xgb_prob_buy * 0.6 + data.llm_confidence * 0.4;
-        } else if (data.xgb_prob_buy != null) {
-          combinedConf = data.xgb_prob_buy;
-        } else if (data.llm_confidence != null) {
-          combinedConf = data.llm_confidence;
-        }
-        const confPctVal = Math.round(combinedConf * 100);
-        confPct.textContent = confPctVal + '%';
-        confFill.style.width = confPctVal + '%';
-        const confColors = { strong_buy: '#16a34a', buy: '#22c55e', watch: '#eab308', avoid: '#ef4444' };
-        confFill.style.background = confColors[recClass] || '#6366f1';
+        const latestProb = latest.prediction_date
+          ? (probabilities || []).slice(-10).find((_, i, arr) => arr) // lấy prob mới nhất
+          : null;
+        // Tìm prob của ngày dự đoán mới nhất
+        const lastProbIdx = (predictions || [])
+          .map((p, i) => (p && p !== "N/A" ? i : -1))
+          .filter((i) => i >= 0)
+          .pop();
+        const lastProb =
+          lastProbIdx != null ? (probabilities || [])[lastProbIdx] : null;
+        setConfidence(lastProb, pred);
 
-        // Suggested action
-        const suggestedEl = document.getElementById('adv-suggested');
-        suggestedEl.textContent = data.suggested_action || '';
-
-        // Timestamp
-        const tsEl = document.getElementById('adv-timestamp');
-        const now = new Date();
-        tsEl.textContent = 'Cập nhật lúc ' + now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) +
-          ' ' + now.toLocaleDateString('vi-VN');
-
-        // Disclaimer
-        const disclaimerEl = document.getElementById('adv-disclaimer');
-        disclaimerEl.textContent = '⚠️ ' + (data.disclaimer || 'Đây là hỗ trợ quyết định, không phải lời khuyên đầu tư');
-
-        // Show content, hide skeleton
-        skeleton.style.display = 'none';
-        content.style.display = 'block';
-      } catch (e) {
-        skeleton.style.display = 'none';
-        content.style.display = 'block';
-        document.getElementById('adv-badge').textContent = 'Không thể tải';
-        document.getElementById('adv-badge').className = 'advisory-badge watch';
-        panel.className = 'advisory-panel watch';
-        document.getElementById('adv-reasons').innerHTML = '<li>Lỗi kết nối: ' + e.message + '</li>';
-      }
-    }
-
-    // ── Init ───────────────────────────────────────────────────────────────────
-    (async function init() {
-      await loadGoldCodes();
-      document.getElementById('gold-code').addEventListener('change', () => {
-        load();
-        loadAdvisory();
-      });
-      load();
-      loadMacro();
-      loadAdvisory();
-    })();
-  </script>
-
-  <!-- ── Chatbot UI ── -->
-  <style>
-    .chat-fab {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      z-index: 1000;
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #6366f1, #818cf8);
-      border: none;
-      color: white;
-      font-size: 1.5rem;
-      cursor: pointer;
-      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
-      transition: transform 0.2s, box-shadow 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .chat-fab:hover {
-      transform: scale(1.1);
-      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
-    }
-
-    .chat-modal {
-      position: fixed;
-      bottom: 90px;
-      right: 24px;
-      z-index: 1001;
-      width: 380px;
-      max-height: 520px;
-      background: var(--card, #1e293b);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 16px;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
-      display: none;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .chat-modal.open {
-      display: flex;
-    }
-
-    .chat-modal-header {
-      padding: 1rem 1.25rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .chat-modal-header h3 {
-      margin: 0;
-      font-size: 0.95rem;
-      color: #e2e8f0;
-    }
-
-    .chat-modal-close {
-      background: none;
-      border: none;
-      color: #94a3b8;
-      font-size: 1.25rem;
-      cursor: pointer;
-    }
-
-    .chat-messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-      min-height: 200px;
-      max-height: 340px;
-    }
-
-    .chat-msg {
-      max-width: 85%;
-      padding: 0.6rem 0.9rem;
-      border-radius: 12px;
-      font-size: 0.88rem;
-      line-height: 1.5;
-      word-wrap: break-word;
-    }
-
-    .chat-msg.user {
-      align-self: flex-end;
-      background: rgba(99, 102, 241, 0.25);
-      color: #c7d2fe;
-      border-bottom-right-radius: 4px;
-    }
-
-    .chat-msg.bot {
-      align-self: flex-start;
-      background: rgba(255, 255, 255, 0.06);
-      color: #cbd5e1;
-      border-bottom-left-radius: 4px;
-    }
-
-    .chat-msg.bot.typing {
-      font-style: italic;
-      color: #94a3b8;
-    }
-
-    .chat-input-row {
-      padding: 0.75rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      display: flex;
-      gap: 0.5rem;
-    }
-
-    .chat-input-row input {
-      flex: 1;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      padding: 0.5rem 0.75rem;
-      color: #e2e8f0;
-      font-size: 0.88rem;
-      outline: none;
-    }
-
-    .chat-input-row input:focus {
-      border-color: #6366f1;
-    }
-
-    .chat-input-row button {
-      background: #6366f1;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 0.5rem 1rem;
-      font-size: 0.88rem;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    .chat-input-row button:hover {
-      background: #4f46e5;
-    }
-
-    .chat-input-row button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    @media (max-width: 500px) {
-      .chat-modal {
-        width: calc(100vw - 32px);
-        right: 16px;
-        bottom: 80px;
-      }
-    }
-  </style>
-
-  <a href="/chat" class="chat-fab" id="chat-fab" title="Hỏi Trợ lý Vàng AI">💬</a>
-  <div class="chat-modal" id="chat-modal">
-    <div class="chat-modal-header">
-      <h3>🤖 Hỏi đáp về vàng</h3>
-      <button class="chat-modal-close" id="chat-close">&times;</button>
-    </div>
-    <div class="chat-messages" id="chat-messages">
-      <div class="chat-msg bot">Xin chào! Tôi có thể giúp bạn tìm hiểu về thị trường vàng. Hãy hỏi bất cứ điều gì 😊
-      </div>
-    </div>
-    <div class="chat-input-row">
-      <input type="text" id="chat-input" placeholder="Ví dụ: Hôm nay có nên mua vàng không?" />
-      <button id="chat-send">Gửi</button>
-    </div>
-  </div>
-
-  <!-- ── Bảng giá vàng realtime ── -->
-  <style>
-    .gold-price-section {
-      margin: 1.5rem auto;
-      max-width: 1100px;
-      padding: 0 1rem;
-    }
-
-    .gold-price-section h2 {
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin-bottom: 1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .live-dot {
-      width: 8px;
-      height: 8px;
-      background: #22c55e;
-      border-radius: 50%;
-      display: inline-block;
-      animation: pulse-dot 1.5s ease-in-out infinite;
-    }
-
-    @keyframes pulse-dot {
-
-      0%,
-      100% {
-        opacity: 1;
-        transform: scale(1);
+        // Track record
+        setTrackRecord(predictions || [], probabilities || []);
       }
 
-      50% {
-        opacity: 0.5;
-        transform: scale(1.3);
+      function showError(msg) {
+        document.getElementById("error-box").innerHTML =
+          '<div class="error-msg">' + msg + "</div>";
       }
-    }
-
-    .gold-price-table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
-      background: var(--card, #1e293b);
-      border: 1px solid var(--card-border, rgba(255, 255, 255, 0.06));
-      border-radius: 12px;
-      overflow: hidden;
-    }
-
-    .gold-price-table thead th {
-      background: rgba(255, 255, 255, 0.04);
-      padding: 0.7rem 0.9rem;
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-muted, #94a3b8);
-      text-align: left;
-      border-bottom: 1px solid var(--card-border, rgba(255, 255, 255, 0.06));
-    }
-
-    .gold-price-table thead th:not(:first-child) {
-      text-align: right;
-    }
-
-    .gold-price-table tbody td {
-      padding: 0.65rem 0.9rem;
-      font-size: 0.88rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-    }
-
-    .gold-price-table tbody td:not(:first-child) {
-      text-align: right;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .gold-price-table tbody tr:last-child td {
-      border-bottom: none;
-    }
-
-    .gold-price-table tbody tr:hover {
-      background: rgba(99, 102, 241, 0.06);
-    }
-
-    .shop-name {
-      font-weight: 500;
-      color: #e2e8f0;
-    }
-
-    .shop-type {
-      font-size: 0.72rem;
-      color: var(--text-muted, #94a3b8);
-      display: block;
-      margin-top: 1px;
-    }
-
-    .price-up {
-      color: #22c55e;
-    }
-
-    .price-down {
-      color: #ef4444;
-    }
-
-    .price-same {
-      color: var(--text-muted, #94a3b8);
-    }
-
-    .change-badge {
-      display: inline-block;
-      font-size: 0.72rem;
-      padding: 0.15rem 0.4rem;
-      border-radius: 4px;
-      font-weight: 500;
-    }
-
-    .change-badge.up {
-      background: rgba(34, 197, 94, 0.15);
-      color: #4ade80;
-    }
-
-    .change-badge.down {
-      background: rgba(239, 68, 68, 0.15);
-      color: #f87171;
-    }
-
-    .change-badge.same {
-      background: rgba(148, 163, 184, 0.1);
-      color: #94a3b8;
-    }
-
-    .gp-update-time {
-      font-size: 0.72rem;
-      color: var(--text-muted, #94a3b8);
-      margin-left: auto;
-    }
-
-    @media (max-width: 600px) {
-      .gold-price-table {
-        font-size: 0.8rem;
+      function clearError() {
+        document.getElementById("error-box").innerHTML = "";
       }
 
-      .gold-price-table thead th,
-      .gold-price-table tbody td {
-        padding: 0.5rem 0.5rem;
-      }
-    }
-  </style>
-
-  <div class="gold-price-section">
-    <h2>
-      <span class="live-dot"></span>
-      Bảng giá vàng hôm nay
-      <span class="gp-update-time" id="gp-update-time">Đang tải...</span>
-    </h2>
-    <table class="gold-price-table" id="gold-price-table">
-      <thead>
-        <tr>
-          <th>Thương hiệu</th>
-          <th>Mua vào (VND/lượng)</th>
-          <th>Bán ra (VND/lượng)</th>
-        </tr>
-      </thead>
-      <tbody id="gp-tbody">
-        <tr>
-          <td colspan="3" style="text-align:center;color:#94a3b8;padding:2rem;">Đang tải bảng giá...</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <script>
-    // Gold Price Table — API Backend lấy từ giavang.org
-    // Các tiệm yêu cầu: SJC, DOJI, PNJ, Bảo Tín Minh Châu, Bảo Tín Mạnh Hải, Phú Quý, Mi Hồng, Ngọc Thẩm.
-    const TARGET_BRANDS = [
-      { id: 'SJC', name: 'SJC' },
-      { id: 'DOJI', name: 'DOJI' },
-      { id: 'PNJ', name: 'PNJ' },
-      { id: 'Bảo Tín Minh Châu', name: 'Bảo Tín Minh Châu' },
-      { id: 'Bảo Tín Mạnh Hải', name: 'Bảo Tín Mạnh Hải' },
-      { id: 'Phú Quý', name: 'Phú Quý' },
-      { id: 'Mi Hồng', name: 'Mi Hồng' },
-      { id: 'Ngọc Thẩm', name: 'Ngọc Thẩm' }
-    ];
-
-    function fmtPrice(n) {
-      if (!n || n === 0) return '—';
-      return Number(n).toLocaleString('vi-VN');
-    }
-
-    async function loadGoldPrices() {
-      const tbody = document.getElementById('gp-tbody');
-      const timeEl = document.getElementById('gp-update-time');
-      try {
-        const r = await fetch('/api/gold-prices');
-        const json = await r.json();
-        if (!json.success || !json.data) throw new Error('API error: ' + (json.error || 'Unknown'));
-
-        const results = [];
-
-        // Priority regions for filtering: TP. Hồ Chí Minh or Hà Nội or Toàn quốc
-        const priorityRegions = ['TP. Hồ Chí Minh', 'Hà Nội', 'Toàn quốc', 'Miền Bắc', 'Miền Nam'];
-
-        TARGET_BRANDS.forEach(target => {
-          // Lọc ra tất cả dòng của brand này
-          const entries = json.data.filter(d => d.brand.includes(target.id));
-
-          if (entries.length > 0) {
-            // Lấy "Vàng miếng" trước nếu có, nếu không thì "Vàng nhẫn"
-            let bestEntry = null;
-
-            // Tìm trong khu vực ưu tiên
-            for (let reg of priorityRegions) {
-              const match = entries.find(e => e.area === reg && e.type === 'Vàng miếng') ||
-                entries.find(e => e.area === reg);
-              if (match) {
-                bestEntry = match;
-                break;
+      // ── Main chart ─────────────────────────────────────────────────────────────
+      function drawChart(data) {
+        const labels = (data.dates || []).map((d) => d.slice(0, 10));
+        _chartDates = (data.dates || []).map((d) => String(d).slice(0, 10));
+        _preds = data.predictions || [];
+        _probs = data.probabilities || [];
+        const prices = data.prices || [];
+        const colors = _preds.map((p, i) => {
+          if (!p || p === "N/A") return "rgba(0,0,0,0)";
+          const prob = _probs[i] != null ? _probs[i] : p === "BUY" ? 0.7 : 0.3;
+          if (p === "BUY")
+            return `rgba(34,197,94,${Math.max(0.35, prob).toFixed(2)})`;
+          if (p === "NOT_BUY")
+            return `rgba(96,165,250,${Math.max(0.35, 1 - prob).toFixed(2)})`;
+          if (p === "SELL") return "rgba(239,68,68,0.85)";
+          return "rgba(0,0,0,0)";
+        });
+        const ctx = document.getElementById("chart").getContext("2d");
+        if (chart) chart.destroy();
+        chart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels,
+            datasets: [
+              {
+                label: "Giá bán TB (VND)",
+                data: prices,
+                borderColor: "#3b82f6",
+                backgroundColor: "rgba(59,130,246,0.1)",
+                fill: true,
+                tension: 0.2,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+              },
+              {
+                label: "Tín hiệu",
+                data: prices,
+                pointBackgroundColor: colors,
+                pointBorderColor: colors,
+                pointRadius: _preds.map((p) => (!p || p === "N/A" ? 0 : 5)),
+                pointHoverRadius: 7,
+                showLine: false,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { intersect: false, mode: "index" },
+            onClick(evt, elements) {
+              if (elements.length > 0 && _chartDates.length > 0) {
+                const idx = elements[0].index;
+                if (idx >= 0 && idx < _chartDates.length)
+                  openDateDetail(_chartDates[idx]);
               }
-            }
+            },
+            plugins: {
+              legend: { position: "top" },
+              tooltip: {
+                callbacks: {
+                  afterLabel(ctx) {
+                    const p = _preds[ctx.dataIndex];
+                    const prob = _probs[ctx.dataIndex];
+                    let t =
+                      "Dự đoán: " +
+                      (p && p !== "N/A" ? p : "chưa có (cần 7 ngày sau)");
+                    if (prob != null && p && p !== "N/A")
+                      t += "  (xác suất BUY: " + Math.round(prob * 100) + "%)";
+                    return t;
+                  },
+                  label(ctx) {
+                    const v = ctx.raw;
+                    return (
+                      (ctx.dataset.label || "") +
+                      ": " +
+                      (typeof v === "number" ? fmt(v) + " VND" : v)
+                    );
+                  },
+                },
+              },
+            },
+            scales: {
+              x: {
+                title: { display: true, text: "Ngày", color: "#94a3b8" },
+                ticks: { maxTicksLimit: 12, color: "#94a3b8" },
+                grid: { color: "rgba(255,255,255,0.06)" },
+              },
+              y: {
+                title: { display: true, text: "VND", color: "#94a3b8" },
+                ticks: { color: "#94a3b8" },
+                grid: { color: "rgba(255,255,255,0.06)" },
+              },
+            },
+          },
+        });
+      }
 
-            // Nếu không tìm thấy trong khu vực ưu tiên, lấy cái đầu tiên
-            if (!bestEntry) bestEntry = entries[0];
+      // ── Donut (nhỏ hơn, không trùng metric card) ───────────────────────────────
+      function drawDonut(predictions, labels) {
+        const L = labels && labels.length ? labels : _labels;
+        const counts = {};
+        L.forEach((l) => {
+          counts[l] = 0;
+        });
+        (predictions || []).forEach((p) => {
+          if (p && p !== "N/A") counts[p] = (counts[p] || 0) + 1;
+        });
+        const colorMap = {
+          BUY: "#22c55e",
+          NOT_BUY: "#60a5fa",
+          HOLD: "#eab308",
+          SELL: "#ef4444",
+        };
+        const total = L.reduce((s, l) => s + (counts[l] || 0), 0);
+        const el = document.getElementById("donut-chart");
+        if (!el) return;
+        if (donutChart) donutChart.destroy();
+        donutChart = new Chart(el.getContext("2d"), {
+          type: "doughnut",
+          data: {
+            labels: L,
+            datasets: [
+              {
+                data: L.map((l) =>
+                  total > 0 ? Math.round(((counts[l] || 0) / total) * 100) : 0,
+                ),
+                backgroundColor: L.map((l) => colorMap[l] || "#64748b"),
+                borderColor: "var(--card)",
+                borderWidth: 2,
+                hoverOffset: 6,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            cutout: "65%",
+            plugins: {
+              legend: {
+                position: "bottom",
+                labels: { font: { size: 12 }, padding: 12 },
+              },
+              tooltip: {
+                callbacks: {
+                  label(ctx) {
+                    return (
+                      ctx.label +
+                      ": " +
+                      ctx.raw +
+                      "% (" +
+                      (counts[ctx.label] || 0) +
+                      " ngày)"
+                    );
+                  },
+                },
+              },
+            },
+          },
+        });
+        // Summary text bên dưới
+        const buyPct =
+          total > 0 ? Math.round(((counts["BUY"] || 0) / total) * 100) : 0;
+        document.getElementById("donut-summary").textContent =
+          total > 0
+            ? (counts["BUY"] || 0) +
+              " ngày BUY · " +
+              (counts["NOT_BUY"] || 0) +
+              " ngày NOT_BUY"
+            : "";
+      }
 
-            results.push({
-              name: target.name,
-              area: bestEntry.area !== 'Toàn quốc' ? ' (' + bestEntry.area + ')' : '',
-              type: bestEntry.type,
-              buy: bestEntry.buy,
-              sell: bestEntry.sell
+      // ── Feature charts (kỹ thuật, ẩn mặc định) ────────────────────────────────
+      function drawFeatureCharts(data) {
+        const dates = data.dates || [];
+        const features = data.features || {};
+        const labels = dates.map((d) => (d || "").slice(0, 10));
+        const gridOpt = { color: "rgba(255,255,255,0.06)" };
+        const ticksOpt = { color: "#94a3b8", maxTicksLimit: 12 };
+
+        const hasPremium = features.premium_pct && features.premium_pct.length;
+        const hasWorld =
+          features.world_price_vnd && features.world_price_vnd.length;
+        if (hasPremium || hasWorld) {
+          const el = document.getElementById("feature-premium-chart");
+          if (el) {
+            if (featurePremiumChart) featurePremiumChart.destroy();
+            const ds = [];
+            if (hasPremium)
+              ds.push({
+                label: "Premium nội địa (%)",
+                data: features.premium_pct,
+                borderColor: "#a78bfa",
+                backgroundColor: "rgba(167,139,250,0.15)",
+                fill: true,
+                tension: 0.2,
+                pointRadius: 0,
+                yAxisID: "yPct",
+              });
+            if (hasWorld)
+              ds.push({
+                label: "Giá TG quy VND (tr)",
+                data: features.world_price_vnd.map((v) =>
+                  v != null ? v / 1e6 : null,
+                ),
+                borderColor: "#38bdf8",
+                backgroundColor: "rgba(56,189,248,0.1)",
+                fill: true,
+                tension: 0.2,
+                pointRadius: 0,
+                yAxisID: "yVnd",
+              });
+            featurePremiumChart = new Chart(el.getContext("2d"), {
+              type: "line",
+              data: { labels, datasets: ds },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { intersect: false, mode: "index" },
+                scales: {
+                  x: { ticks: ticksOpt, grid: gridOpt },
+                  yPct: {
+                    type: "linear",
+                    position: "left",
+                    title: {
+                      display: true,
+                      text: "Premium (%)",
+                      color: "#94a3b8",
+                    },
+                    ticks: { ...ticksOpt, callback: (v) => v + "%" },
+                    grid: gridOpt,
+                  },
+                  yVnd: {
+                    type: "linear",
+                    position: "right",
+                    title: {
+                      display: true,
+                      text: "VND (triệu)",
+                      color: "#94a3b8",
+                    },
+                    ticks: ticksOpt,
+                    grid: { drawOnChartArea: false },
+                  },
+                },
+                plugins: { legend: { position: "top" } },
+              },
             });
           }
-        });
+        }
 
-        let rows = '';
-        results.forEach(d => {
-          rows += '<tr>' +
-            '<td><span class="shop-name">' + d.name + '</span><span class="shop-type">' + d.type + d.area + '</span></td>' +
-            '<td>' + fmtPrice(d.buy) + '</td>' +
-            '<td style="font-weight:600;">' + fmtPrice(d.sell) + '</td>' +
-            '</tr>';
-        });
-
-        tbody.innerHTML = rows || '<tr><td colspan="3" style="text-align:center;color:#94a3b8;">Không có dữ liệu</td></tr>';
-
-        const now = new Date();
-        timeEl.textContent = 'Cập nhật: ' + now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) +
-          ' ' + now.toLocaleDateString('vi-VN');
-      } catch (e) {
-        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#f87171;">Lỗi tải bảng giá: ' + e.message + '</td></tr>';
-        timeEl.textContent = 'Lỗi kết nối';
+        const hasRsi = features.RSI_14 && features.RSI_14.length;
+        const hasR3 =
+          features.cum_return_3d_pct && features.cum_return_3d_pct.length;
+        const hasR7 =
+          features.cum_return_7d_pct && features.cum_return_7d_pct.length;
+        if (hasRsi || hasR3 || hasR7) {
+          const el = document.getElementById("feature-rsi-chart");
+          if (el) {
+            if (featureRsiChart) featureRsiChart.destroy();
+            const ds = [];
+            if (hasRsi)
+              ds.push({
+                label: "RSI 14 ngày",
+                data: features.RSI_14,
+                borderColor: "#f472b6",
+                backgroundColor: "rgba(244,114,182,0.1)",
+                fill: true,
+                tension: 0.2,
+                pointRadius: 0,
+                yAxisID: "yRsi",
+              });
+            if (hasR3)
+              ds.push({
+                label: "Lợi nhuận 3D (%)",
+                data: features.cum_return_3d_pct,
+                borderColor: "#67e8f9",
+                tension: 0.2,
+                pointRadius: 0,
+                yAxisID: "yRet",
+              });
+            if (hasR7)
+              ds.push({
+                label: "Lợi nhuận 7D (%)",
+                data: features.cum_return_7d_pct,
+                borderColor: "#4ade80",
+                tension: 0.2,
+                pointRadius: 0,
+                yAxisID: "yRet",
+              });
+            // Đường tham chiếu RSI 30/70
+            const rsiRef = Array(labels.length);
+            featureRsiChart = new Chart(el.getContext("2d"), {
+              type: "line",
+              data: { labels, datasets: ds },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { intersect: false, mode: "index" },
+                scales: {
+                  x: { ticks: ticksOpt, grid: gridOpt },
+                  yRsi: {
+                    type: "linear",
+                    position: "left",
+                    min: 0,
+                    max: 100,
+                    title: { display: true, text: "RSI", color: "#94a3b8" },
+                    ticks: ticksOpt,
+                    grid: gridOpt,
+                  },
+                  yRet: {
+                    type: "linear",
+                    position: "right",
+                    title: {
+                      display: true,
+                      text: "Lợi nhuận (%)",
+                      color: "#94a3b8",
+                    },
+                    ticks: { ...ticksOpt, callback: (v) => v + "%" },
+                    grid: { drawOnChartArea: false },
+                  },
+                },
+                plugins: {
+                  legend: { position: "top" },
+                  annotation: undefined,
+                },
+              },
+            });
+          }
+        }
       }
-    }
 
-    // Load immediately + auto-refresh every 3 minutes
-    loadGoldPrices();
-    setInterval(loadGoldPrices, 3 * 60 * 1000);
-  </script>
+      // ── Collapsible toggle ─────────────────────────────────────────────────────
+      function toggleTech() {
+        const btn = document.getElementById("tech-toggle");
+        const content = document.getElementById("tech-content");
+        btn.classList.toggle("open");
+        content.classList.toggle("open");
+        // Resize charts khi mở để render đúng
+        if (content.classList.contains("open")) {
+          setTimeout(() => {
+            if (featurePremiumChart) featurePremiumChart.resize();
+            if (featureRsiChart) featureRsiChart.resize();
+          }, 50);
+        }
+      }
 
-  <h1>Các chỉ số thế giới</h1>
-  <!-- TradingView Widget BEGIN -->
-  <div class="tradingview-widget-container">
-    <div>Giá vàng thế giới</div>
-    <div class="tradingview-widget-container__widget"></div>
-    <div class="tradingview-widget-copyright"><a href="https://www.tradingview.com/symbols/OANDA-XAUUSD/"
-        rel="noopener nofollow" target="_blank"><span class="blue-text">XAUUSD performance</span></a><span
-        class="trademark"> by TradingView</span></div>
-    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-info.js"
-      async>
+      // ── Load chính ─────────────────────────────────────────────────────────────
+      async function load() {
+        const goldCode = document.getElementById("gold-code").value || "";
+        setLatest({}, goldCode || null, _labels, [], []);
+        clearError();
+        document.getElementById("latest-prediction").textContent =
+          "Đang tải...";
+        document.getElementById("latest-prediction").className =
+          "prediction-badge loading";
+
+        try {
+          const url = goldCode
+            ? "/api/predict?gold_code=" + encodeURIComponent(goldCode)
+            : "/api/predict";
+          const r = await fetch(url);
+          const data = await r.json();
+          if (!r.ok) {
+            showError(data.error || "Lỗi API");
+            return;
+          }
+          if (Array.isArray(data.labels) && data.labels.length > 0)
+            _labels = data.labels;
+          document.getElementById("mode-pill").textContent =
+            _labels.join(" / ");
+          setLatest(
+            data.latest || {},
+            data.gold_code || null,
+            data.labels,
+            data.predictions,
+            data.probabilities,
+          );
+          drawChart(data);
+          drawDonut(data.predictions || [], data.labels || _labels);
+          drawFeatureCharts(data);
+        } catch (e) {
+          showError("Không kết nối được server. Chạy: python frontend/app.py");
+        }
+      }
+
+      // ── Gold codes dropdown (load động) ───────────────────────────────────────
+      let _goldNames = {}; // {code: Vietnamese name}
+      async function loadGoldCodes() {
+        try {
+          const r = await fetch("/api/gold_codes");
+          if (!r.ok) return;
+          const data = await r.json();
+          const sel = document.getElementById("gold-code");
+          _goldNames = data.gold_names || {};
+          (data.gold_codes || data || []).forEach((code) => {
+            const opt = document.createElement("option");
+            opt.value = code;
+            opt.textContent = _goldNames[code] || code;
+            sel.appendChild(opt);
+          });
+        } catch (e) {}
+      }
+
+      // ── Date detail modal ──────────────────────────────────────────────────────
+      function openDateDetail(dateStr) {
+        const modal = document.getElementById("date-detail-modal");
+        const title = document.getElementById("date-detail-title");
+        const meta = document.getElementById("date-detail-meta");
+        const newsEl = document.getElementById("date-detail-news");
+        const suppEl = document.getElementById("date-detail-supplement");
+        const loadEl = document.getElementById("date-detail-loading");
+        title.textContent = "Chi tiết ngày " + dateStr;
+        meta.textContent = "Đang tải...";
+        newsEl.innerHTML = "";
+        suppEl.style.display = "none";
+        loadEl.style.display = "block";
+        modal.classList.add("show");
+        modal.setAttribute("aria-hidden", "false");
+
+        const goldCode = document.getElementById("gold-code").value || "";
+        let url = "/api/date-detail?date=" + encodeURIComponent(dateStr);
+        if (goldCode) url += "&gold_code=" + encodeURIComponent(goldCode);
+
+        fetch(url)
+          .then((r) => r.json())
+          .then((data) => {
+            loadEl.style.display = "none";
+            if (data.error && !data.date) {
+              meta.textContent = data.error;
+              return;
+            }
+            const price = data.price != null ? fmt(data.price) + " VND" : "—";
+            meta.textContent =
+              "Giá: " + price + " · Dự đoán ML: " + (data.ml_prediction || "—");
+
+            newsEl.innerHTML = "";
+            if ((data.news || []).length) {
+              data.news.forEach((n) => {
+                const d = document.createElement("div");
+                d.className = "news-item";
+                const titleSafe = (n.title || "").replace(/</g, "&lt;");
+                const snippetSafe = (n.snippet || "")
+                  .slice(0, 200)
+                  .replace(/</g, "&lt;");
+                const urlHref = n.url
+                  ? `<a href="${n.url}" target="_blank" rel="noopener" style="color:#60a5fa;font-size:0.78rem;">↗ Đọc thêm</a>`
+                  : "";
+                const srcDate = [n.source, (n.published || "").slice(0, 10)]
+                  .filter(Boolean)
+                  .join(" · ");
+                d.innerHTML =
+                  `<strong>${titleSafe}</strong>` +
+                  `<div style="color:#64748b;font-size:0.78rem;margin:2px 0;">${srcDate}</div>` +
+                  (snippetSafe
+                    ? `<div style="color:#94a3b8;">${snippetSafe}</div>`
+                    : "") +
+                  (urlHref
+                    ? `<div style="margin-top:4px;">${urlHref}</div>`
+                    : "");
+                newsEl.appendChild(d);
+              });
+            } else {
+              newsEl.innerHTML =
+                '<p class="news-item" style="color:#94a3b8;">Không có tin nào trong 48h gần đây.</p>';
+            }
+
+            const sup = data.llm_supplement;
+            if (sup) {
+              suppEl.style.display = "block";
+              const sigEl = document.getElementById("date-detail-signal");
+              sigEl.textContent = sup.adjusted_signal || "—";
+              sigEl.className =
+                "prediction-badge " + predClass(sup.adjusted_signal || "");
+              document.getElementById("date-detail-confidence").textContent =
+                sup.confidence != null
+                  ? Math.round(sup.confidence * 100) + "% tin cậy"
+                  : "";
+              document.getElementById("date-detail-reasoning").textContent =
+                sup.reasoning || "—";
+              document.getElementById("date-detail-price-note").textContent =
+                sup.updated_price_note || "—";
+              const riskEl = document.getElementById("date-detail-risk");
+              riskEl.textContent = sup.key_risk ? "⚠ " + sup.key_risk : "";
+              riskEl.style.display = sup.key_risk ? "inline-block" : "none";
+
+              // Cập nhật reasoning trong signal card nếu là ngày mới nhất
+              const latest = _chartDates[_chartDates.length - 1];
+              if (dateStr === latest && sup.reasoning) {
+                document.getElementById("signal-reasoning-text").textContent =
+                  sup.reasoning;
+                document.getElementById(
+                  "signal-reasoning-text",
+                ).style.fontStyle = "normal";
+                document.getElementById("signal-reasoning-text").style.color =
+                  "#cbd5e1";
+              }
+            } else {
+              suppEl.style.display = "none";
+            }
+          })
+          .catch(() => {
+            loadEl.style.display = "none";
+            meta.textContent =
+              "Không tải được dữ liệu. Kiểm tra kết nối và API key.";
+          });
+      }
+
+      function closeDateDetailModal() {
+        const modal = document.getElementById("date-detail-modal");
+        modal.classList.remove("show");
+        modal.setAttribute("aria-hidden", "true");
+      }
+      (function wireDateDetailModal() {
+        document
+          .getElementById("date-detail-close")
+          ?.addEventListener("click", closeDateDetailModal);
+        document
+          .getElementById("date-detail-modal")
+          ?.addEventListener("click", (e) => {
+            if (e.target.id === "date-detail-modal") closeDateDetailModal();
+          });
+      })();
+
+      // ── Macro charts (4 biểu đồ tách riêng) ──────────────────────────────────
+      const MACRO_CHARTS_CFG = [
+        {
+          key: "fed_rate",
+          label: "Lãi suất FED (%)",
+          color: "#f59e0b",
+          unit: "percent",
+          canvasId: "macro-fed-chart",
+          noteId: "macro-fed-note",
+        },
+        {
+          key: "world_gold",
+          label: "Vàng TG (USD/oz)",
+          color: "#4ade80",
+          unit: "usd",
+          canvasId: "macro-world-chart",
+          noteId: "macro-world-note",
+        },
+        {
+          key: "dxy_index",
+          label: "DXY Index",
+          color: "#38bdf8",
+          unit: "number",
+          canvasId: "macro-dxy-chart",
+          noteId: "macro-dxy-note",
+        },
+        {
+          key: "vn_rate",
+          label: "Lãi suất VN (%)",
+          color: "#a78bfa",
+          unit: "percent",
+          canvasId: "macro-vn-chart",
+          noteId: "macro-vn-note",
+        },
+      ];
+
+      const MACRO_INFO_CONTENT = {
+        fed_rate: {
+          title: "Lãi suất FED (%)",
+          what: "FED rate là lãi suất điều hành của Cục Dự trữ Liên bang Mỹ. Đây là tham chiếu rất quan trọng cho chi phí vốn và sức mạnh đồng USD.",
+          impact:
+            "Khi FED tăng lãi suất, USD thường mạnh hơn và tài sản không sinh lãi như vàng có thể chịu áp lực giảm. Khi FED giảm lãi suất, vàng thường được hỗ trợ tốt hơn.",
+          note: "Nên đọc cùng DXY và kỳ vọng thị trường: đôi khi giá vàng phản ứng trước khi quyết định lãi suất công bố.",
+        },
+        world_gold: {
+          title: "Vàng thế giới (USD/oz)",
+          what: "Đây là giá vàng quốc tế theo ounce (USD/oz), phản ánh cung cầu toàn cầu và tâm lý trú ẩn rủi ro.",
+          impact:
+            "Giá vàng trong nước thường đi cùng xu hướng vàng thế giới, nhưng mức độ tăng giảm còn phụ thuộc tỷ giá USD/VND và premium nội địa.",
+          note: "Nếu vàng thế giới tăng nhưng USD/VND giảm mạnh, đà tăng của vàng trong nước có thể bị giảm bớt.",
+        },
+        dxy_index: {
+          title: "DXY Index",
+          what: "DXY là chỉ số đo sức mạnh đồng USD so với rổ các đồng tiền mạnh khác.",
+          impact:
+            "Thông thường DXY tăng sẽ gây áp lực lên vàng (quan hệ nghịch), vì vàng định giá bằng USD. DXY giảm thường tạo điều kiện cho vàng tăng.",
+          note: "Quan hệ DXY-vàng không phải lúc nào cũng tuyệt đối, đặc biệt khi có biến động địa chính trị hoặc rủi ro hệ thống.",
+        },
+        vn_rate: {
+          title: "Lãi suất VN (%)",
+          what: "Đây là lãi suất tham chiếu trong nước (theo dữ liệu hệ thống), phản ánh môi trường lãi suất nội địa.",
+          impact:
+            "Lãi suất trong nước cao hơn có thể làm tăng hấp dẫn của gửi tiết kiệm so với vàng; lãi suất thấp hơn thường hỗ trợ dòng tiền sang tài sản như vàng.",
+          note: "Kết hợp với lạm phát và tỷ giá để đánh giá hiệu ứng thực lên nhu cầu nắm giữ vàng.",
+        },
+      };
+
+      function openMacroInfo(macroKey) {
+        const data = MACRO_INFO_CONTENT[macroKey];
+        if (!data) return;
+        document.getElementById("macro-info-title").textContent = data.title;
+        document.getElementById("macro-info-what").textContent =
+          "Chỉ số này là gì: " + data.what;
+        document.getElementById("macro-info-impact").textContent =
+          "Ảnh hưởng đến giá vàng: " + data.impact;
+        document.getElementById("macro-info-note").textContent =
+          "Gợi ý đọc dữ liệu: " + data.note;
+
+        const modal = document.getElementById("macro-info-modal");
+        modal.classList.add("show");
+        modal.setAttribute("aria-hidden", "false");
+      }
+
+      function closeMacroInfoModal() {
+        const modal = document.getElementById("macro-info-modal");
+        modal.classList.remove("show");
+        modal.setAttribute("aria-hidden", "true");
+      }
+
+      function wireMacroInfoCards() {
+        const map = {
+          "macro-fed-card": "fed_rate",
+          "macro-world-card": "world_gold",
+          "macro-dxy-card": "dxy_index",
+          "macro-vn-card": "vn_rate",
+        };
+
+        Object.entries(map).forEach(([id, key]) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.setAttribute("role", "button");
+          el.setAttribute("tabindex", "0");
+          el.addEventListener("click", () => openMacroInfo(key));
+          el.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              openMacroInfo(key);
+            }
+          });
+        });
+
+        document
+          .getElementById("macro-info-close")
+          ?.addEventListener("click", closeMacroInfoModal);
+        document
+          .getElementById("macro-info-modal")
+          ?.addEventListener("click", (e) => {
+            if (e.target.id === "macro-info-modal") closeMacroInfoModal();
+          });
+      }
+
+      const macroCharts = {};
+
+      function fmtMacroValue(v, unit) {
+        if (v == null || Number.isNaN(Number(v))) return "N/A";
+        if (unit === "percent") return Number(v).toFixed(2) + "%";
+        if (unit === "usd") return "$" + Number(v).toLocaleString("en-US");
+        return Number(v).toFixed(2);
+      }
+
+      function buildSingleMacroChart(cfg, labels, series) {
+        const canvas = document.getElementById(cfg.canvasId);
+        const note = document.getElementById(cfg.noteId);
+        if (!canvas || !note) return;
+
+        if (macroCharts[cfg.canvasId]) {
+          macroCharts[cfg.canvasId].destroy();
+          macroCharts[cfg.canvasId] = null;
+        }
+
+        const numericSeries = (series || []).map((v) => {
+          const n = Number(v);
+          return Number.isFinite(n) ? n : null;
+        });
+        const hasData = numericSeries.some((v) => v != null);
+        if (!hasData) {
+          note.textContent = "Chưa có dữ liệu.";
+          return;
+        }
+
+        const lastVal = [...numericSeries].reverse().find((v) => v != null);
+        note.textContent = "Mới nhất: " + fmtMacroValue(lastVal, cfg.unit);
+
+        const yTitle =
+          cfg.unit === "percent"
+            ? "Giá trị (%)"
+            : cfg.unit === "usd"
+              ? "USD/oz"
+              : "Giá trị";
+
+        macroCharts[cfg.canvasId] = new Chart(canvas.getContext("2d"), {
+          type: "line",
+          data: {
+            labels,
+            datasets: [
+              {
+                label: cfg.label,
+                data: numericSeries,
+                borderColor: cfg.color,
+                backgroundColor: cfg.color + "22",
+                fill: true,
+                tension: 0.2,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                borderWidth: 2,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { intersect: false, mode: "index" },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label(ctx) {
+                    return (
+                      (ctx.dataset.label || "") +
+                      ": " +
+                      fmtMacroValue(ctx.raw, cfg.unit)
+                    );
+                  },
+                },
+              },
+            },
+            scales: {
+              x: {
+                title: { display: true, text: "Ngày" },
+                ticks: { maxTicksLimit: 8, color: "#94a3b8" },
+                grid: { color: "rgba(255,255,255,0.05)" },
+              },
+              y: {
+                title: { display: true, text: yTitle, color: "#94a3b8" },
+                ticks: {
+                  color: cfg.color,
+                  callback(v) {
+                    if (cfg.unit === "percent")
+                      return Number(v).toFixed(2) + "%";
+                    if (cfg.unit === "usd")
+                      return "$" + Number(v).toLocaleString("en-US");
+                    return Number(v).toFixed(2);
+                  },
+                },
+                grid: { color: "rgba(255,255,255,0.05)" },
+              },
+            },
+          },
+        });
+      }
+
+      function buildMacroCharts(data) {
+        const labels = (data.dates || []).map((d) => d.slice(0, 10));
+        MACRO_CHARTS_CFG.forEach((cfg) => {
+          buildSingleMacroChart(cfg, labels, data[cfg.key] || []);
+        });
+      }
+
+      async function loadMacro() {
+        try {
+          const r = await fetch("/api/macro");
+          const data = await r.json();
+          if (!r.ok) return;
+          buildMacroCharts(data);
+        } catch (e) {}
+      }
+
+      // ── Advisory Panel ──────────────────────────────────────────────────────────
+      async function loadAdvisory() {
+        const sel = document.getElementById("gold-code");
+        const goldCode = sel ? sel.value : "SJC_BAR";
+        const panel = document.getElementById("advisory-panel");
+        const skeleton = document.getElementById("adv-skeleton");
+        const content = document.getElementById("adv-content");
+
+        // Show skeleton
+        skeleton.style.display = "block";
+        content.style.display = "none";
+        panel.className = "advisory-panel";
+
+        try {
+          const url =
+            "/api/advisory?gold_code=" +
+            encodeURIComponent(goldCode || "SJC_BAR");
+          const resp = await fetch(url);
+          const data = await resp.json();
+
+          // Badge
+          const badge = document.getElementById("adv-badge");
+          const rec = data.final_recommendation || "WATCH";
+          const recClass = rec.toLowerCase();
+          badge.textContent = data.recommendation_label || rec;
+          badge.className = "advisory-badge " + recClass;
+          panel.className = "advisory-panel " + recClass;
+
+          // Sublabel — human-friendly, no jargon
+          const sublabel = document.getElementById("adv-sublabel");
+          const parts = [];
+          if (data.llm_available === true && data.llm_signal) {
+            parts.push("Đã phân tích tin tức thị trường");
+            if (data.news_count > 0)
+              parts.push(data.news_count + " tin gần đây");
+          } else if (data.llm_available === false) {
+            parts.push("Chưa có phân tích tin tức");
+          }
+          if (data.risk_level) {
+            const riskMap = {
+              low: "Rủi ro thấp",
+              medium: "Rủi ro vừa",
+              high: "Rủi ro cao",
+            };
+            parts.push(riskMap[data.risk_level] || "");
+          }
+          sublabel.textContent = parts.filter(Boolean).join("  •  ");
+
+          // Reasons
+          const reasonsEl = document.getElementById("adv-reasons");
+          const reasons = data.reasons || [];
+          reasonsEl.innerHTML = reasons
+            .map((r) => "<li>" + r + "</li>")
+            .join("");
+
+          // Outlook
+          const outlookEl = document.getElementById("adv-outlook");
+          const outlookMap = {
+            tăng: "📈 Xu hướng TĂNG",
+            giảm: "📉 Xu hướng GIẢM",
+            sideway: "➡️ Đi ngang (sideway)",
+          };
+          const outlookColors = {
+            tăng: "#22c55e",
+            giảm: "#ef4444",
+            sideway: "#eab308",
+          };
+          const ol = data.price_outlook_7d || "sideway";
+          outlookEl.textContent = outlookMap[ol] || outlookMap["sideway"];
+          outlookEl.style.color = outlookColors[ol] || outlookColors["sideway"];
+
+          // Confidence bar
+          const confPct = document.getElementById("adv-conf-pct");
+          const confFill = document.getElementById("adv-conf-fill");
+          let combinedConf = 0.5;
+          if (data.xgb_prob_buy != null && data.llm_confidence != null) {
+            combinedConf = data.xgb_prob_buy * 0.6 + data.llm_confidence * 0.4;
+          } else if (data.xgb_prob_buy != null) {
+            combinedConf = data.xgb_prob_buy;
+          } else if (data.llm_confidence != null) {
+            combinedConf = data.llm_confidence;
+          }
+          const confPctVal = Math.round(combinedConf * 100);
+          confPct.textContent = confPctVal + "%";
+          confFill.style.width = confPctVal + "%";
+          const confColors = {
+            strong_buy: "#16a34a",
+            buy: "#22c55e",
+            watch: "#eab308",
+            avoid: "#ef4444",
+          };
+          confFill.style.background = confColors[recClass] || "#6366f1";
+
+          // Suggested action
+          const suggestedEl = document.getElementById("adv-suggested");
+          suggestedEl.textContent = data.suggested_action || "";
+
+          // Timestamp
+          const tsEl = document.getElementById("adv-timestamp");
+          const now = new Date();
+          tsEl.textContent =
+            "Cập nhật lúc " +
+            now.toLocaleTimeString("vi-VN", {
+              hour: "2-digit",
+              minute: "2-digit",
+            }) +
+            " " +
+            now.toLocaleDateString("vi-VN");
+
+          // Disclaimer
+          const disclaimerEl = document.getElementById("adv-disclaimer");
+          disclaimerEl.textContent =
+            "⚠️ " +
+            (data.disclaimer ||
+              "Đây là hỗ trợ quyết định, không phải lời khuyên đầu tư");
+
+          // Show content, hide skeleton
+          skeleton.style.display = "none";
+          content.style.display = "block";
+        } catch (e) {
+          skeleton.style.display = "none";
+          content.style.display = "block";
+          document.getElementById("adv-badge").textContent = "Không thể tải";
+          document.getElementById("adv-badge").className =
+            "advisory-badge watch";
+          panel.className = "advisory-panel watch";
+          document.getElementById("adv-reasons").innerHTML =
+            "<li>Lỗi kết nối: " + e.message + "</li>";
+        }
+      }
+
+      // ── Init ───────────────────────────────────────────────────────────────────
+      (async function init() {
+        const themeBtn = document.getElementById("theme-toggle-btn");
+        if (themeBtn) {
+          themeBtn.addEventListener("click", () => {
+            const curr = document.documentElement.getAttribute("data-theme");
+            applyTheme(curr === "dark" ? "light" : "dark");
+          });
+        }
+
+        await loadGoldCodes();
+        wireMacroInfoCards();
+        document.getElementById("gold-code").addEventListener("change", () => {
+          load();
+          loadAdvisory();
+        });
+        load();
+        loadMacro();
+        loadAdvisory();
+      })();
+    </script>
+
+    <!-- ── Chatbot UI ── -->
+    <style>
+      .chat-fab {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 1000;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #6366f1, #818cf8);
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        box-shadow: 0 8px 18px rgba(35, 73, 150, 0.22);
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .chat-fab:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+      }
+
+      .chat-modal {
+        position: fixed;
+        bottom: 90px;
+        right: 24px;
+        z-index: 1001;
+        width: 380px;
+        max-height: 520px;
+        background: var(--card, #1e293b);
+        border: 1px solid var(--card-border);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .chat-modal.open {
+        display: flex;
+      }
+
+      .chat-modal-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--card-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .chat-modal-header h3 {
+        margin: 0;
+        font-size: 0.95rem;
+        color: var(--text);
+      }
+
+      .chat-modal-close {
+        background: none;
+        border: none;
+        color: #94a3b8;
+        font-size: 1.25rem;
+        cursor: pointer;
+      }
+
+      .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        min-height: 200px;
+        max-height: 340px;
+      }
+
+      .chat-msg {
+        max-width: 85%;
+        padding: 0.6rem 0.9rem;
+        border-radius: 12px;
+        font-size: 0.88rem;
+        line-height: 1.5;
+        word-wrap: break-word;
+      }
+
+      .chat-msg.user {
+        align-self: flex-end;
+        background: var(--accent-weak);
+        color: var(--text);
+        border-bottom-right-radius: 4px;
+      }
+
+      .chat-msg.bot {
+        align-self: flex-start;
+        background: var(--card-soft);
+        color: var(--text-soft);
+        border-bottom-left-radius: 4px;
+      }
+
+      .chat-msg.bot.typing {
+        font-style: italic;
+        color: #94a3b8;
+      }
+
+      .chat-input-row {
+        padding: 0.75rem;
+        border-top: 1px solid var(--card-border);
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .chat-input-row input {
+        flex: 1;
+        background: var(--card-soft);
+        border: 1px solid var(--card-border);
+        border-radius: 8px;
+        padding: 0.5rem 0.75rem;
+        color: var(--text);
+        font-size: 0.88rem;
+        outline: none;
+      }
+
+      .chat-input-row input:focus {
+        border-color: #6366f1;
+      }
+
+      .chat-input-row button {
+        background: #6366f1;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        font-size: 0.88rem;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .chat-input-row button:hover {
+        background: #4f46e5;
+      }
+
+      .chat-input-row button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      @media (max-width: 500px) {
+        .chat-modal {
+          width: calc(100vw - 32px);
+          right: 16px;
+          bottom: 80px;
+        }
+      }
+    </style>
+
+    <a href="/chat" class="chat-fab" id="chat-fab" title="Hỏi Trợ lý Vàng AI"
+      >💬</a
+    >
+    <div class="chat-modal" id="chat-modal">
+      <div class="chat-modal-header">
+        <h3>🤖 Hỏi đáp về vàng</h3>
+        <button class="chat-modal-close" id="chat-close">&times;</button>
+      </div>
+      <div class="chat-messages" id="chat-messages">
+        <div class="chat-msg bot">
+          Xin chào! Tôi có thể giúp bạn tìm hiểu về thị trường vàng. Hãy hỏi bất
+          cứ điều gì 😊
+        </div>
+      </div>
+      <div class="chat-input-row">
+        <input
+          type="text"
+          id="chat-input"
+          placeholder="Ví dụ: Hôm nay có nên mua vàng không?"
+        />
+        <button id="chat-send">Gửi</button>
+      </div>
+    </div>
+
+    <!-- ── Bảng giá vàng realtime ── -->
+    <style>
+      .gold-price-section {
+        margin: 1.5rem auto;
+        max-width: 1100px;
+        padding: 0 1rem;
+      }
+
+      .gold-price-section h2 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .live-dot {
+        width: 8px;
+        height: 8px;
+        background: #22c55e;
+        border-radius: 50%;
+        display: inline-block;
+        animation: pulse-dot 1.5s ease-in-out infinite;
+      }
+
+      @keyframes pulse-dot {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+
+        50% {
+          opacity: 0.5;
+          transform: scale(1.3);
+        }
+      }
+
+      .gold-price-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        background: var(--card);
+        border: 1px solid var(--card-border);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      .gold-price-table thead th {
+        background: var(--card-soft);
+        padding: 0.7rem 0.9rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+        text-align: left;
+        border-bottom: 1px solid var(--card-border);
+      }
+
+      .gold-price-table thead th:not(:first-child) {
+        text-align: right;
+      }
+
+      .gold-price-table tbody td {
+        padding: 0.65rem 0.9rem;
+        font-size: 0.88rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      }
+
+      .gold-price-table tbody td:not(:first-child) {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .gold-price-table tbody tr:last-child td {
+        border-bottom: none;
+      }
+
+      .gold-price-table tbody tr:hover {
+        background: var(--accent-weak);
+      }
+
+      .shop-name {
+        font-weight: 500;
+        color: var(--text);
+      }
+
+      .shop-type {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        display: block;
+        margin-top: 1px;
+      }
+
+      .price-up {
+        color: #22c55e;
+      }
+
+      .price-down {
+        color: #ef4444;
+      }
+
+      .price-same {
+        color: var(--text-muted, #94a3b8);
+      }
+
+      .change-badge {
+        display: inline-block;
+        font-size: 0.72rem;
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+        font-weight: 500;
+      }
+
+      .change-badge.up {
+        background: rgba(34, 197, 94, 0.15);
+        color: #4ade80;
+      }
+
+      .change-badge.down {
+        background: rgba(239, 68, 68, 0.15);
+        color: #f87171;
+      }
+
+      .change-badge.same {
+        background: rgba(148, 163, 184, 0.1);
+        color: #94a3b8;
+      }
+
+      .gp-update-time {
+        font-size: 0.72rem;
+        color: var(--text-muted, #94a3b8);
+        margin-left: auto;
+      }
+
+      @media (max-width: 600px) {
+        .gold-price-table {
+          font-size: 0.8rem;
+        }
+
+        .gold-price-table thead th,
+        .gold-price-table tbody td {
+          padding: 0.5rem 0.5rem;
+        }
+      }
+    </style>
+
+    <div class="gold-price-section">
+      <h2>
+        <span class="live-dot"></span>
+        Bảng giá vàng hôm nay
+        <span class="gp-update-time" id="gp-update-time">Đang tải...</span>
+      </h2>
+      <table class="gold-price-table" id="gold-price-table">
+        <thead>
+          <tr>
+            <th>Thương hiệu</th>
+            <th>Mua vào (VND/lượng)</th>
+            <th>Bán ra (VND/lượng)</th>
+          </tr>
+        </thead>
+        <tbody id="gp-tbody">
+          <tr>
+            <td
+              colspan="3"
+              style="text-align: center; color: #94a3b8; padding: 2rem"
+            >
+              Đang tải bảng giá...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <script>
+      // Gold Price Table — API Backend lấy từ giavang.org
+      // Các tiệm yêu cầu: SJC, DOJI, PNJ, Bảo Tín Minh Châu, Bảo Tín Mạnh Hải, Phú Quý, Mi Hồng, Ngọc Thẩm.
+      const TARGET_BRANDS = [
+        { id: "SJC", name: "SJC" },
+        { id: "DOJI", name: "DOJI" },
+        { id: "PNJ", name: "PNJ" },
+        { id: "Bảo Tín Minh Châu", name: "Bảo Tín Minh Châu" },
+        { id: "Bảo Tín Mạnh Hải", name: "Bảo Tín Mạnh Hải" },
+        { id: "Phú Quý", name: "Phú Quý" },
+        { id: "Mi Hồng", name: "Mi Hồng" },
+        { id: "Ngọc Thẩm", name: "Ngọc Thẩm" },
+      ];
+
+      function fmtPrice(n) {
+        if (!n || n === 0) return "—";
+        return Number(n).toLocaleString("vi-VN");
+      }
+
+      async function loadGoldPrices() {
+        const tbody = document.getElementById("gp-tbody");
+        const timeEl = document.getElementById("gp-update-time");
+        try {
+          const r = await fetch("/api/gold-prices");
+          const json = await r.json();
+          if (!json.success || !json.data)
+            throw new Error("API error: " + (json.error || "Unknown"));
+
+          const results = [];
+
+          // Priority regions for filtering: TP. Hồ Chí Minh or Hà Nội or Toàn quốc
+          const priorityRegions = [
+            "TP. Hồ Chí Minh",
+            "Hà Nội",
+            "Toàn quốc",
+            "Miền Bắc",
+            "Miền Nam",
+          ];
+
+          TARGET_BRANDS.forEach((target) => {
+            // Lọc ra tất cả dòng của brand này
+            const entries = json.data.filter((d) =>
+              d.brand.includes(target.id),
+            );
+
+            if (entries.length > 0) {
+              // Lấy "Vàng miếng" trước nếu có, nếu không thì "Vàng nhẫn"
+              let bestEntry = null;
+
+              // Tìm trong khu vực ưu tiên
+              for (let reg of priorityRegions) {
+                const match =
+                  entries.find(
+                    (e) => e.area === reg && e.type === "Vàng miếng",
+                  ) || entries.find((e) => e.area === reg);
+                if (match) {
+                  bestEntry = match;
+                  break;
+                }
+              }
+
+              // Nếu không tìm thấy trong khu vực ưu tiên, lấy cái đầu tiên
+              if (!bestEntry) bestEntry = entries[0];
+
+              results.push({
+                name: target.name,
+                area:
+                  bestEntry.area !== "Toàn quốc"
+                    ? " (" + bestEntry.area + ")"
+                    : "",
+                type: bestEntry.type,
+                buy: bestEntry.buy,
+                sell: bestEntry.sell,
+              });
+            }
+          });
+
+          let rows = "";
+          results.forEach((d) => {
+            rows +=
+              "<tr>" +
+              '<td><span class="shop-name">' +
+              d.name +
+              '</span><span class="shop-type">' +
+              d.type +
+              d.area +
+              "</span></td>" +
+              "<td>" +
+              fmtPrice(d.buy) +
+              "</td>" +
+              '<td style="font-weight:600;">' +
+              fmtPrice(d.sell) +
+              "</td>" +
+              "</tr>";
+          });
+
+          tbody.innerHTML =
+            rows ||
+            '<tr><td colspan="3" style="text-align:center;color:#94a3b8;">Không có dữ liệu</td></tr>';
+
+          const now = new Date();
+          timeEl.textContent =
+            "Cập nhật: " +
+            now.toLocaleTimeString("vi-VN", {
+              hour: "2-digit",
+              minute: "2-digit",
+            }) +
+            " " +
+            now.toLocaleDateString("vi-VN");
+        } catch (e) {
+          tbody.innerHTML =
+            '<tr><td colspan="3" style="text-align:center;color:#f87171;">Lỗi tải bảng giá: ' +
+            e.message +
+            "</td></tr>";
+          timeEl.textContent = "Lỗi kết nối";
+        }
+      }
+
+      // Load immediately + auto-refresh every 3 minutes
+      loadGoldPrices();
+      setInterval(loadGoldPrices, 3 * 60 * 1000);
+    </script>
+
+    <h1>Các chỉ số thế giới</h1>
+    <!-- TradingView Widget BEGIN -->
+    <div class="tradingview-widget-container">
+      <div>Giá vàng thế giới</div>
+      <div class="tradingview-widget-container__widget"></div>
+      <div class="tradingview-widget-copyright">
+        <a
+          href="https://www.tradingview.com/symbols/OANDA-XAUUSD/"
+          rel="noopener nofollow"
+          target="_blank"
+          ><span class="blue-text">XAUUSD performance</span></a
+        ><span class="trademark"> by TradingView</span>
+      </div>
+      <script
+        type="text/javascript"
+        src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-info.js"
+        async
+      >
         {
           "symbol": "OANDA:XAUUSD",
             "colorTheme": "dark",
@@ -2082,17 +2862,25 @@
                   "width": "550"
         }
       </script>
-  </div>
-  <!-- TradingView Widget END -->
-  <!-- TradingView Widget BEGIN -->
-  <div class="tradingview-widget-container">
-    <div>Chỉ số Đô la Mỹ (DXY)</div>
-    <div class="tradingview-widget-container__widget"></div>
-    <div class="tradingview-widget-copyright"><a href="https://www.tradingview.com/symbols/CAPITALCOM-DXY/"
-        rel="noopener nofollow" target="_blank"><span class="blue-text">DXY performance</span></a><span
-        class="trademark"> by TradingView</span></div>
-    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-info.js"
-      async>
+    </div>
+    <!-- TradingView Widget END -->
+    <!-- TradingView Widget BEGIN -->
+    <div class="tradingview-widget-container">
+      <div>Chỉ số Đô la Mỹ (DXY)</div>
+      <div class="tradingview-widget-container__widget"></div>
+      <div class="tradingview-widget-copyright">
+        <a
+          href="https://www.tradingview.com/symbols/CAPITALCOM-DXY/"
+          rel="noopener nofollow"
+          target="_blank"
+          ><span class="blue-text">DXY performance</span></a
+        ><span class="trademark"> by TradingView</span>
+      </div>
+      <script
+        type="text/javascript"
+        src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-info.js"
+        async
+      >
         {
           "symbol": "CAPITALCOM:DXY",
             "colorTheme": "dark",
@@ -2101,66 +2889,67 @@
                   "width": "550"
         }
       </script>
-  </div>
-  <!-- TradingView Widget END -->
+    </div>
+    <!-- TradingView Widget END -->
 
-  <script>
-    // Chatbot logic
-    (function () {
-      const fab = document.getElementById('chat-fab');
-      const modal = document.getElementById('chat-modal');
-      const closeBtn = document.getElementById('chat-close');
-      const input = document.getElementById('chat-input');
-      const sendBtn = document.getElementById('chat-send');
-      const msgs = document.getElementById('chat-messages');
+    <script>
+      // Chatbot logic
+      (function () {
+        const fab = document.getElementById("chat-fab");
+        const modal = document.getElementById("chat-modal");
+        const closeBtn = document.getElementById("chat-close");
+        const input = document.getElementById("chat-input");
+        const sendBtn = document.getElementById("chat-send");
+        const msgs = document.getElementById("chat-messages");
 
-      fab.addEventListener('click', () => {
-        modal.classList.toggle('open');
-        if (modal.classList.contains('open')) input.focus();
-      });
-      closeBtn.addEventListener('click', () => modal.classList.remove('open'));
+        fab.addEventListener("click", () => {
+          modal.classList.toggle("open");
+          if (modal.classList.contains("open")) input.focus();
+        });
+        closeBtn.addEventListener("click", () =>
+          modal.classList.remove("open"),
+        );
 
-      function addMsg(text, role) {
-        const div = document.createElement('div');
-        div.className = 'chat-msg ' + role;
-        div.textContent = text;
-        msgs.appendChild(div);
-        msgs.scrollTop = msgs.scrollHeight;
-        return div;
-      }
-
-      async function sendMessage() {
-        const text = input.value.trim();
-        if (!text) return;
-        input.value = '';
-        addMsg(text, 'user');
-
-        const typing = addMsg('Đang suy nghĩ...', 'bot typing');
-        sendBtn.disabled = true;
-
-        try {
-          const r = await fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: text }),
-          });
-          const data = await r.json();
-          typing.remove();
-          addMsg(data.reply || 'Xin lỗi, tôi chưa thể trả lời.', 'bot');
-        } catch (e) {
-          typing.remove();
-          addMsg('Lỗi kết nối. Vui lòng thử lại.', 'bot');
+        function addMsg(text, role) {
+          const div = document.createElement("div");
+          div.className = "chat-msg " + role;
+          div.textContent = text;
+          msgs.appendChild(div);
+          msgs.scrollTop = msgs.scrollHeight;
+          return div;
         }
-        sendBtn.disabled = false;
-        input.focus();
-      }
 
-      sendBtn.addEventListener('click', sendMessage);
-      input.addEventListener('keydown', e => {
-        if (e.key === 'Enter') sendMessage();
-      });
-    })();
-  </script>
-</body>
+        async function sendMessage() {
+          const text = input.value.trim();
+          if (!text) return;
+          input.value = "";
+          addMsg(text, "user");
 
+          const typing = addMsg("Đang suy nghĩ...", "bot typing");
+          sendBtn.disabled = true;
+
+          try {
+            const r = await fetch("/api/chat", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ message: text }),
+            });
+            const data = await r.json();
+            typing.remove();
+            addMsg(data.reply || "Xin lỗi, tôi chưa thể trả lời.", "bot");
+          } catch (e) {
+            typing.remove();
+            addMsg("Lỗi kết nối. Vui lòng thử lại.", "bot");
+          }
+          sendBtn.disabled = false;
+          input.focus();
+        }
+
+        sendBtn.addEventListener("click", sendMessage);
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") sendMessage();
+        });
+      })();
+    </script>
+  </body>
 </html>
