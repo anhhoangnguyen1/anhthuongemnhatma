@@ -539,6 +539,67 @@ def api_predict():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/gold-prices")
+def api_gold_prices():
+    """Lấy dữ liệu bảng giá vàng từ giavang.org"""
+    import requests
+    from bs4 import BeautifulSoup
+
+    def parse_price(s):
+        s = s.replace('.', '').replace(',', '').strip()
+        parts = s.split()
+        if parts:
+            s_val = parts[0]
+            if s_val.isdigit():
+                return int(s_val) * 1000
+        return 0
+
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        r = requests.get('https://giavang.org/', headers=headers, timeout=10)
+        r.encoding = 'utf-8'
+        soup = BeautifulSoup(r.text, 'html.parser')
+
+        data = []
+        tables = soup.find_all('table')
+        
+        for ti, table in enumerate(tables[:2]):
+            main_type = "Vàng miếng" if ti == 0 else "Vàng nhẫn"
+            current_area = "Toàn quốc"
+            
+            for row in table.find_all('tr'):
+                cells = [c.get_text(strip=True) for c in row.find_all(['td', 'th'])]
+                if not cells or "Thương hiệu" in cells[0] or "Khu vực" in cells[0]:
+                    continue
+                
+                brand = ""
+                buy_val = 0
+                sell_val = 0
+                
+                if len(cells) >= 4:
+                    current_area = cells[0]
+                    brand = cells[1]
+                    buy_val = parse_price(cells[2])
+                    sell_val = parse_price(cells[3])
+                elif len(cells) >= 3:
+                    brand = cells[0]
+                    buy_val = parse_price(cells[1])
+                    sell_val = parse_price(cells[2])
+                
+                if brand and sell_val > 0:
+                    data.append({
+                        "area": current_area,
+                        "brand": brand,
+                        "type": main_type,
+                        "buy": buy_val,
+                        "sell": sell_val
+                    })
+        
+        return jsonify({"success": True, "data": data})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @app.route("/chat")
 def chat_page():
     """Trang chatbot toàn màn hình."""
@@ -599,35 +660,70 @@ def api_chat():
     if not user_msg:
         return jsonify({"reply": "Vui lòng nhập câu hỏi."}), 200
 
-    # Lấy context hiện tại từ advisory (nếu có)
+    # ── Chủ động chạy advisory pipeline để lấy DỮ LIỆU THẬT ──
     advisory_context = ""
     try:
         try:
-            from frontend.advisory_engine import generate_advisory, _advisory_cache
+            from frontend.advisory_engine import generate_advisory
         except ImportError:
-            from advisory_engine import generate_advisory, _advisory_cache
-        for key, (ts, data) in _advisory_cache.items():
-            advisory_context = (
-                f"Lời khuyên hiện tại: {data.get('recommendation_label', 'N/A')}. "
-                f"Giá vàng: {data.get('current_price', 'N/A'):,.0f} VND. "
-                f"Lý do: {'; '.join(data.get('reasons', []))}. "
-                f"Xu hướng 7 ngày: {data.get('price_outlook_7d', 'N/A')}. "
-                f"Mức rủi ro: {data.get('risk_level', 'N/A')}."
-            )
-            break
-    except Exception:
-        pass
+            from advisory_engine import generate_advisory
+
+        # Chạy pipeline thật (XGBoost + LLM news) cho SJC_BAR
+        predict_result = None
+        try:
+            predict_result = _run_pipeline_and_predict(gold_code="SJC_BAR")
+        except Exception:
+            pass
+
+        data = generate_advisory(
+            gold_code="SJC_BAR",
+            root_path=ROOT,
+            predict_result=predict_result,
+        )
+
+        # Xây context chi tiết từ kết quả thật
+        parts = []
+        if data.get("recommendation_label"):
+            parts.append(f"🔔 LỜI KHUYÊN: {data['recommendation_label']}")
+        if data.get("current_price"):
+            parts.append(f"Giá vàng SJC hiện tại: {data['current_price']:,.0f} VND")
+        if data.get("xgb_signal"):
+            sig_map = {"BUY": "Nên mua", "NOT_BUY": "Chưa nên mua"}
+            parts.append(f"Tín hiệu phân tích kỹ thuật: {sig_map.get(data['xgb_signal'], data['xgb_signal'])}")
+        if data.get("xgb_prob_buy") is not None:
+            parts.append(f"Độ tin cậy phân tích kỹ thuật: {data['xgb_prob_buy']:.0%}")
+        if data.get("reasons"):
+            parts.append(f"Các lý do chính: {'; '.join(data['reasons'])}")
+        if data.get("price_outlook_7d"):
+            outlook_map = {"tăng": "Giá có xu hướng TĂNG", "giảm": "Giá có xu hướng GIẢM", "sideway": "Giá đi ngang"}
+            parts.append(f"Dự báo 7 ngày tới: {outlook_map.get(data['price_outlook_7d'], data['price_outlook_7d'])}")
+        if data.get("risk_level"):
+            risk_map = {"low": "Rủi ro thấp", "medium": "Rủi ro vừa", "high": "Rủi ro cao"}
+            parts.append(f"Mức rủi ro: {risk_map.get(data['risk_level'], data['risk_level'])}")
+        if data.get("suggested_action"):
+            parts.append(f"Hành động gợi ý: {data['suggested_action']}")
+        if data.get("news_summary"):
+            parts.append(f"Tin tức: {data['news_summary']}")
+        if data.get("llm_available") is False:
+            parts.append("(Chưa có phân tích tin tức — chỉ dựa trên dữ liệu kỹ thuật)")
+
+        advisory_context = "\n".join(parts)
+    except Exception as e:
+        advisory_context = f"Lỗi khi lấy dữ liệu phân tích: {e}"
 
     system_prompt = (
         "Bạn là Trợ lý Vàng AI — chuyên gia tư vấn thị trường vàng Việt Nam. "
         "Phong cách: thân thiện, dễ hiểu, chuyên nghiệp. "
-        "Trả lời tiếng Việt, KHÔNG dùng thuật ngữ kỹ thuật (như XGBoost, F1, RSI, threshold). "
-        "Nếu người dùng hỏi về giá vàng, mua/bán, xu hướng thị trường — hãy đưa ra nhận định rõ ràng, cụ thể. "
-        "Nếu có context phân tích bên dưới, hãy dùng làm căn cứ. "
+        "Trả lời tiếng Việt, KHÔNG dùng thuật ngữ kỹ thuật (như XGBoost, F1, RSI, threshold, P_buy, prob). "
+        "HÃY DIỄN GIẢI context phân tích bên dưới thành ngôn ngữ dễ hiểu cho người thường. "
+        "Khi người dùng hỏi về giá vàng, mua/bán, xu hướng — hãy dựa trên CONTEXT PHÂN TÍCH bên dưới "
+        "để đưa ra nhận định CỤ THỂ, RÕ RÀNG (ví dụ: 'Hiện tại nên theo dõi thêm vì...'). "
+        "KHÔNG nói chung chung. PHẢI trích dẫn dữ liệu cụ thể (giá, xu hướng, lý do). "
         "Luôn nhắc rằng đây là tham khảo, không phải lời khuyên tài chính chính thức. "
         "Có thể dùng emoji phù hợp. "
         "Trả lời đầy đủ, chi tiết nhưng dễ đọc (dùng đoạn văn ngắn, gạch đầu dòng nếu cần).\n\n"
-        f"CONTEXT PHÂN TÍCH HIỆN TẠI:\n{advisory_context if advisory_context else 'Chưa có dữ liệu phân tích. Hãy trả lời dựa trên kiến thức chung về thị trường vàng Việt Nam.'}"
+        f"===== CONTEXT PHÂN TÍCH HIỆN TẠI (dữ liệu thật từ hệ thống) =====\n"
+        f"{advisory_context if advisory_context else 'Không lấy được dữ liệu. Hãy trả lời dựa trên kiến thức chung.'}"
     )
 
     # Build messages array (multi-turn)

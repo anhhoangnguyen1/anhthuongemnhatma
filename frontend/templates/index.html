@@ -550,10 +550,21 @@
       border-radius: 16px 16px 0 0;
     }
 
-    .advisory-panel.strong_buy::before { background: linear-gradient(90deg, #16a34a, #22c55e); }
-    .advisory-panel.buy::before        { background: linear-gradient(90deg, #22c55e, #4ade80); }
-    .advisory-panel.watch::before      { background: linear-gradient(90deg, #eab308, #facc15); }
-    .advisory-panel.avoid::before      { background: linear-gradient(90deg, #ef4444, #f87171); }
+    .advisory-panel.strong_buy::before {
+      background: linear-gradient(90deg, #16a34a, #22c55e);
+    }
+
+    .advisory-panel.buy::before {
+      background: linear-gradient(90deg, #22c55e, #4ade80);
+    }
+
+    .advisory-panel.watch::before {
+      background: linear-gradient(90deg, #eab308, #facc15);
+    }
+
+    .advisory-panel.avoid::before {
+      background: linear-gradient(90deg, #ef4444, #f87171);
+    }
 
     .advisory-header {
       display: flex;
@@ -588,10 +599,25 @@
       letter-spacing: 0.02em;
     }
 
-    .advisory-badge.strong_buy { background: rgba(22, 163, 74, 0.25); color: #86efac; }
-    .advisory-badge.buy        { background: rgba(34, 197, 94, 0.25); color: #86efac; }
-    .advisory-badge.watch      { background: rgba(234, 179, 8, 0.25); color: #fde047; }
-    .advisory-badge.avoid      { background: rgba(239, 68, 68, 0.25); color: #fca5a5; }
+    .advisory-badge.strong_buy {
+      background: rgba(22, 163, 74, 0.25);
+      color: #86efac;
+    }
+
+    .advisory-badge.buy {
+      background: rgba(34, 197, 94, 0.25);
+      color: #86efac;
+    }
+
+    .advisory-badge.watch {
+      background: rgba(234, 179, 8, 0.25);
+      color: #fde047;
+    }
+
+    .advisory-badge.avoid {
+      background: rgba(239, 68, 68, 0.25);
+      color: #fca5a5;
+    }
 
     .advisory-sublabel {
       font-size: 0.9rem;
@@ -606,7 +632,9 @@
     }
 
     @media (max-width: 700px) {
-      .advisory-body { grid-template-columns: 1fr; }
+      .advisory-body {
+        grid-template-columns: 1fr;
+      }
     }
 
     .advisory-reasons {
@@ -684,8 +712,15 @@
 
     /* ── Skeleton shimmer ── */
     @keyframes shimmer {
-      0%, 100% { opacity: 0.4; }
-      50% { opacity: 0.8; }
+
+      0%,
+      100% {
+        opacity: 0.4;
+      }
+
+      50% {
+        opacity: 0.8;
+      }
     }
 
     .skeleton-rect {
@@ -809,7 +844,8 @@
     <div class="signal-reasoning" id="signal-reasoning-box">
       <div class="reason-label">📌 Ghi chú</div>
       <p id="signal-reasoning-text" style="color:#94a3b8;font-size:0.88rem;line-height:1.6;">
-        Tín hiệu kỹ thuật chỉ là <b>1 yếu tố tham khảo</b>. Hãy xem <b>"Lời khuyên đầu tư"</b> ở trên để có nhận định tổng hợp từ cả phân tích kỹ thuật lẫn tin tức thị trường.
+        Tín hiệu kỹ thuật chỉ là <b>1 yếu tố tham khảo</b>. Hãy xem <b>"Lời khuyên đầu tư"</b> ở trên để có nhận định
+        tổng hợp từ cả phân tích kỹ thuật lẫn tin tức thị trường.
       </p>
     </div>
 
@@ -1032,7 +1068,7 @@
       const buyPct = total > 0 ? Math.round(buyCount / total * 100) : 0;
       document.getElementById('metric-distribution').textContent =
         total > 0 ? buyPct + '% Nên mua' : '--';
-      const labelMap = {'BUY': 'Nên mua', 'NOT_BUY': 'Chưa nên mua'};
+      const labelMap = { 'BUY': 'Nên mua', 'NOT_BUY': 'Chưa nên mua' };
       document.getElementById('metric-distribution-detail').textContent =
         L.map(l => (labelMap[l] || l) + ': ' + (counts[l] || 0) + ' ngày').join(' · ');
 
@@ -1517,7 +1553,7 @@
           parts.push('Chưa có phân tích tin tức');
         }
         if (data.risk_level) {
-          const riskMap = {low: 'Rủi ro thấp', medium: 'Rủi ro vừa', high: 'Rủi ro cao'};
+          const riskMap = { low: 'Rủi ro thấp', medium: 'Rủi ro vừa', high: 'Rủi ro cao' };
           parts.push(riskMap[data.risk_level] || '');
         }
         sublabel.textContent = parts.filter(Boolean).join('  •  ');
@@ -1559,7 +1595,7 @@
         // Timestamp
         const tsEl = document.getElementById('adv-timestamp');
         const now = new Date();
-        tsEl.textContent = 'Cập nhật lúc ' + now.toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit'}) +
+        tsEl.textContent = 'Cập nhật lúc ' + now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) +
           ' ' + now.toLocaleDateString('vi-VN');
 
         // Disclaimer
@@ -1595,72 +1631,159 @@
   <!-- ── Chatbot UI ── -->
   <style>
     .chat-fab {
-      position: fixed; bottom: 24px; right: 24px; z-index: 1000;
-      width: 56px; height: 56px; border-radius: 50%;
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 1000;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
       background: linear-gradient(135deg, #6366f1, #818cf8);
-      border: none; color: white; font-size: 1.5rem; cursor: pointer;
-      box-shadow: 0 4px 16px rgba(99,102,241,0.4);
+      border: none;
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
       transition: transform 0.2s, box-shadow 0.2s;
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .chat-fab:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(99,102,241,0.5); }
+
+    .chat-fab:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+    }
 
     .chat-modal {
-      position: fixed; bottom: 90px; right: 24px; z-index: 1001;
-      width: 380px; max-height: 520px;
-      background: var(--card, #1e293b); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,0.4);
-      display: none; flex-direction: column; overflow: hidden;
+      position: fixed;
+      bottom: 90px;
+      right: 24px;
+      z-index: 1001;
+      width: 380px;
+      max-height: 520px;
+      background: var(--card, #1e293b);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
     }
-    .chat-modal.open { display: flex; }
+
+    .chat-modal.open {
+      display: flex;
+    }
 
     .chat-modal-header {
-      padding: 1rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.08);
-      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
-    .chat-modal-header h3 { margin: 0; font-size: 0.95rem; color: #e2e8f0; }
+
+    .chat-modal-header h3 {
+      margin: 0;
+      font-size: 0.95rem;
+      color: #e2e8f0;
+    }
+
     .chat-modal-close {
-      background: none; border: none; color: #94a3b8; font-size: 1.25rem; cursor: pointer;
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 1.25rem;
+      cursor: pointer;
     }
 
     .chat-messages {
-      flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem;
-      min-height: 200px; max-height: 340px;
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      min-height: 200px;
+      max-height: 340px;
     }
+
     .chat-msg {
-      max-width: 85%; padding: 0.6rem 0.9rem; border-radius: 12px;
-      font-size: 0.88rem; line-height: 1.5; word-wrap: break-word;
+      max-width: 85%;
+      padding: 0.6rem 0.9rem;
+      border-radius: 12px;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      word-wrap: break-word;
     }
+
     .chat-msg.user {
-      align-self: flex-end; background: rgba(99,102,241,0.25); color: #c7d2fe;
+      align-self: flex-end;
+      background: rgba(99, 102, 241, 0.25);
+      color: #c7d2fe;
       border-bottom-right-radius: 4px;
     }
+
     .chat-msg.bot {
-      align-self: flex-start; background: rgba(255,255,255,0.06); color: #cbd5e1;
+      align-self: flex-start;
+      background: rgba(255, 255, 255, 0.06);
+      color: #cbd5e1;
       border-bottom-left-radius: 4px;
     }
-    .chat-msg.bot.typing { font-style: italic; color: #94a3b8; }
+
+    .chat-msg.bot.typing {
+      font-style: italic;
+      color: #94a3b8;
+    }
 
     .chat-input-row {
-      padding: 0.75rem; border-top: 1px solid rgba(255,255,255,0.08);
-      display: flex; gap: 0.5rem;
+      padding: 0.75rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      gap: 0.5rem;
     }
+
     .chat-input-row input {
-      flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 8px; padding: 0.5rem 0.75rem; color: #e2e8f0;
-      font-size: 0.88rem; outline: none;
+      flex: 1;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 0.5rem 0.75rem;
+      color: #e2e8f0;
+      font-size: 0.88rem;
+      outline: none;
     }
-    .chat-input-row input:focus { border-color: #6366f1; }
+
+    .chat-input-row input:focus {
+      border-color: #6366f1;
+    }
+
     .chat-input-row button {
-      background: #6366f1; color: white; border: none; border-radius: 8px;
-      padding: 0.5rem 1rem; font-size: 0.88rem; cursor: pointer;
+      background: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      font-size: 0.88rem;
+      cursor: pointer;
       transition: background 0.2s;
     }
-    .chat-input-row button:hover { background: #4f46e5; }
-    .chat-input-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .chat-input-row button:hover {
+      background: #4f46e5;
+    }
+
+    .chat-input-row button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
 
     @media (max-width: 500px) {
-      .chat-modal { width: calc(100vw - 32px); right: 16px; bottom: 80px; }
+      .chat-modal {
+        width: calc(100vw - 32px);
+        right: 16px;
+        bottom: 80px;
+      }
     }
   </style>
 
@@ -1671,7 +1794,8 @@
       <button class="chat-modal-close" id="chat-close">&times;</button>
     </div>
     <div class="chat-messages" id="chat-messages">
-      <div class="chat-msg bot">Xin chào! Tôi có thể giúp bạn tìm hiểu về thị trường vàng. Hãy hỏi bất cứ điều gì 😊</div>
+      <div class="chat-msg bot">Xin chào! Tôi có thể giúp bạn tìm hiểu về thị trường vàng. Hãy hỏi bất cứ điều gì 😊
+      </div>
     </div>
     <div class="chat-input-row">
       <input type="text" id="chat-input" placeholder="Ví dụ: Hôm nay có nên mua vàng không?" />
@@ -1679,9 +1803,309 @@
     </div>
   </div>
 
+  <!-- ── Bảng giá vàng realtime ── -->
+  <style>
+    .gold-price-section {
+      margin: 1.5rem auto;
+      max-width: 1100px;
+      padding: 0 1rem;
+    }
+
+    .gold-price-section h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: #22c55e;
+      border-radius: 50%;
+      display: inline-block;
+      animation: pulse-dot 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.5;
+        transform: scale(1.3);
+      }
+    }
+
+    .gold-price-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      background: var(--card, #1e293b);
+      border: 1px solid var(--card-border, rgba(255, 255, 255, 0.06));
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .gold-price-table thead th {
+      background: rgba(255, 255, 255, 0.04);
+      padding: 0.7rem 0.9rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted, #94a3b8);
+      text-align: left;
+      border-bottom: 1px solid var(--card-border, rgba(255, 255, 255, 0.06));
+    }
+
+    .gold-price-table thead th:not(:first-child) {
+      text-align: right;
+    }
+
+    .gold-price-table tbody td {
+      padding: 0.65rem 0.9rem;
+      font-size: 0.88rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    .gold-price-table tbody td:not(:first-child) {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .gold-price-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .gold-price-table tbody tr:hover {
+      background: rgba(99, 102, 241, 0.06);
+    }
+
+    .shop-name {
+      font-weight: 500;
+      color: #e2e8f0;
+    }
+
+    .shop-type {
+      font-size: 0.72rem;
+      color: var(--text-muted, #94a3b8);
+      display: block;
+      margin-top: 1px;
+    }
+
+    .price-up {
+      color: #22c55e;
+    }
+
+    .price-down {
+      color: #ef4444;
+    }
+
+    .price-same {
+      color: var(--text-muted, #94a3b8);
+    }
+
+    .change-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    .change-badge.up {
+      background: rgba(34, 197, 94, 0.15);
+      color: #4ade80;
+    }
+
+    .change-badge.down {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+    }
+
+    .change-badge.same {
+      background: rgba(148, 163, 184, 0.1);
+      color: #94a3b8;
+    }
+
+    .gp-update-time {
+      font-size: 0.72rem;
+      color: var(--text-muted, #94a3b8);
+      margin-left: auto;
+    }
+
+    @media (max-width: 600px) {
+      .gold-price-table {
+        font-size: 0.8rem;
+      }
+
+      .gold-price-table thead th,
+      .gold-price-table tbody td {
+        padding: 0.5rem 0.5rem;
+      }
+    }
+  </style>
+
+  <div class="gold-price-section">
+    <h2>
+      <span class="live-dot"></span>
+      Bảng giá vàng hôm nay
+      <span class="gp-update-time" id="gp-update-time">Đang tải...</span>
+    </h2>
+    <table class="gold-price-table" id="gold-price-table">
+      <thead>
+        <tr>
+          <th>Thương hiệu</th>
+          <th>Mua vào (VND/lượng)</th>
+          <th>Bán ra (VND/lượng)</th>
+        </tr>
+      </thead>
+      <tbody id="gp-tbody">
+        <tr>
+          <td colspan="3" style="text-align:center;color:#94a3b8;padding:2rem;">Đang tải bảng giá...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    // Gold Price Table — API Backend lấy từ giavang.org
+    // Các tiệm yêu cầu: SJC, DOJI, PNJ, Bảo Tín Minh Châu, Bảo Tín Mạnh Hải, Phú Quý, Mi Hồng, Ngọc Thẩm.
+    const TARGET_BRANDS = [
+      { id: 'SJC', name: 'SJC' },
+      { id: 'DOJI', name: 'DOJI' },
+      { id: 'PNJ', name: 'PNJ' },
+      { id: 'Bảo Tín Minh Châu', name: 'Bảo Tín Minh Châu' },
+      { id: 'Bảo Tín Mạnh Hải', name: 'Bảo Tín Mạnh Hải' },
+      { id: 'Phú Quý', name: 'Phú Quý' },
+      { id: 'Mi Hồng', name: 'Mi Hồng' },
+      { id: 'Ngọc Thẩm', name: 'Ngọc Thẩm' }
+    ];
+
+    function fmtPrice(n) {
+      if (!n || n === 0) return '—';
+      return Number(n).toLocaleString('vi-VN');
+    }
+
+    async function loadGoldPrices() {
+      const tbody = document.getElementById('gp-tbody');
+      const timeEl = document.getElementById('gp-update-time');
+      try {
+        const r = await fetch('/api/gold-prices');
+        const json = await r.json();
+        if (!json.success || !json.data) throw new Error('API error: ' + (json.error || 'Unknown'));
+
+        const results = [];
+
+        // Priority regions for filtering: TP. Hồ Chí Minh or Hà Nội or Toàn quốc
+        const priorityRegions = ['TP. Hồ Chí Minh', 'Hà Nội', 'Toàn quốc', 'Miền Bắc', 'Miền Nam'];
+
+        TARGET_BRANDS.forEach(target => {
+          // Lọc ra tất cả dòng của brand này
+          const entries = json.data.filter(d => d.brand.includes(target.id));
+
+          if (entries.length > 0) {
+            // Lấy "Vàng miếng" trước nếu có, nếu không thì "Vàng nhẫn"
+            let bestEntry = null;
+
+            // Tìm trong khu vực ưu tiên
+            for (let reg of priorityRegions) {
+              const match = entries.find(e => e.area === reg && e.type === 'Vàng miếng') ||
+                entries.find(e => e.area === reg);
+              if (match) {
+                bestEntry = match;
+                break;
+              }
+            }
+
+            // Nếu không tìm thấy trong khu vực ưu tiên, lấy cái đầu tiên
+            if (!bestEntry) bestEntry = entries[0];
+
+            results.push({
+              name: target.name,
+              area: bestEntry.area !== 'Toàn quốc' ? ' (' + bestEntry.area + ')' : '',
+              type: bestEntry.type,
+              buy: bestEntry.buy,
+              sell: bestEntry.sell
+            });
+          }
+        });
+
+        let rows = '';
+        results.forEach(d => {
+          rows += '<tr>' +
+            '<td><span class="shop-name">' + d.name + '</span><span class="shop-type">' + d.type + d.area + '</span></td>' +
+            '<td>' + fmtPrice(d.buy) + '</td>' +
+            '<td style="font-weight:600;">' + fmtPrice(d.sell) + '</td>' +
+            '</tr>';
+        });
+
+        tbody.innerHTML = rows || '<tr><td colspan="3" style="text-align:center;color:#94a3b8;">Không có dữ liệu</td></tr>';
+
+        const now = new Date();
+        timeEl.textContent = 'Cập nhật: ' + now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) +
+          ' ' + now.toLocaleDateString('vi-VN');
+      } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#f87171;">Lỗi tải bảng giá: ' + e.message + '</td></tr>';
+        timeEl.textContent = 'Lỗi kết nối';
+      }
+    }
+
+    // Load immediately + auto-refresh every 3 minutes
+    loadGoldPrices();
+    setInterval(loadGoldPrices, 3 * 60 * 1000);
+  </script>
+
+  <h1>Các chỉ số thế giới</h1>
+  <!-- TradingView Widget BEGIN -->
+  <div class="tradingview-widget-container">
+    <div>Giá vàng thế giới</div>
+    <div class="tradingview-widget-container__widget"></div>
+    <div class="tradingview-widget-copyright"><a href="https://www.tradingview.com/symbols/OANDA-XAUUSD/"
+        rel="noopener nofollow" target="_blank"><span class="blue-text">XAUUSD performance</span></a><span
+        class="trademark"> by TradingView</span></div>
+    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-info.js"
+      async>
+        {
+          "symbol": "OANDA:XAUUSD",
+            "colorTheme": "dark",
+              "isTransparent": false,
+                "locale": "en",
+                  "width": "550"
+        }
+      </script>
+  </div>
+  <!-- TradingView Widget END -->
+  <!-- TradingView Widget BEGIN -->
+  <div class="tradingview-widget-container">
+    <div>Chỉ số Đô la Mỹ (DXY)</div>
+    <div class="tradingview-widget-container__widget"></div>
+    <div class="tradingview-widget-copyright"><a href="https://www.tradingview.com/symbols/CAPITALCOM-DXY/"
+        rel="noopener nofollow" target="_blank"><span class="blue-text">DXY performance</span></a><span
+        class="trademark"> by TradingView</span></div>
+    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-info.js"
+      async>
+        {
+          "symbol": "CAPITALCOM:DXY",
+            "colorTheme": "dark",
+              "isTransparent": false,
+                "locale": "en",
+                  "width": "550"
+        }
+      </script>
+  </div>
+  <!-- TradingView Widget END -->
+
   <script>
     // Chatbot logic
-    (function() {
+    (function () {
       const fab = document.getElementById('chat-fab');
       const modal = document.getElementById('chat-modal');
       const closeBtn = document.getElementById('chat-close');
@@ -1716,8 +2140,8 @@
         try {
           const r = await fetch('/api/chat', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({message: text}),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: text }),
           });
           const data = await r.json();
           typing.remove();
